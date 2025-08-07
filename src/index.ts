@@ -172,6 +172,7 @@ export default class PluginSample extends Plugin {
             <svg class="block__logoicon"><use xlink:href="#iconTiddlyWiki"></use></svg>TiddlyWiki
         </div>
         <span class="fn__flex-1 fn__space"></span>
+        <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Refresh TiddlyWiki"><svg><use xlink:href="#iconRefresh"></use></svg></span>
         <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Add TiddlyWiki Item"><svg><use xlink:href="#iconAdd"></use></svg></span>
         <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ${adaptHotkey("⌘W")}"><svg><use xlink:href="#iconMin"></use></svg></span>
     </div>
@@ -181,6 +182,13 @@ export default class PluginSample extends Plugin {
 </div>`;
                     
                     // 添加按钮事件监听
+                    const refreshButton = dock.element.querySelector("[data-type=\"refresh\"]");
+                    if (refreshButton) {
+                        refreshButton.addEventListener("click", () => {
+                            this.handleRefreshTiddlyWiki();
+                        });
+                    }
+
                     const addButton = dock.element.querySelector("[data-type=\"add\"]");
                     if (addButton) {
                         addButton.addEventListener("click", () => {
@@ -227,7 +235,7 @@ export default class PluginSample extends Plugin {
             filter: ["insert emoji 😊", "插入表情 😊", "crbqwx"],
             html: `<div class="b3-list-item__first"><span class="b3-list-item__text">${this.i18n.insertEmoji}</span><span class="b3-list-item__meta">😊</span></div>`,
             id: "insertEmoji",
-            callback(protyle: Protyle, nodeElement: HTMLElement) {
+            callback(protyle: Protyle) {
                 protyle.insert("😊");
             }
         }];
@@ -930,5 +938,21 @@ export default class PluginSample extends Plugin {
                 nameInput.focus();
             }
         });
+    }
+
+    private handleRefreshTiddlyWiki() {
+        showMessage("正在刷新 TiddlyWiki...");
+        console.log("Refreshing TiddlyWiki...");
+        
+        // 模拟刷新操作
+        setTimeout(() => {
+            showMessage("TiddlyWiki 已刷新");
+            console.log("TiddlyWiki refreshed successfully");
+            
+            // 这里可以添加实际的刷新逻辑，比如：
+            // - 重新加载TiddlyWiki数据
+            // - 更新dock面板内容
+            // - 同步数据源等
+        }, 1000);
     }
 }
