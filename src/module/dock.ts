@@ -65,34 +65,17 @@ export class dock {
      */
     private initDock(dock: any) {
         this.dockElement = dock.element;
-        if (this.isMobile) {
-            this.createMobileDock(dock);
-        } else {
-            this.createDesktopDock(dock);
-        }
+        // 移动端和桌面端使用统一界面
+        this.createUnifiedDock(dock);
         
         // 初始化后立即加载TiddlyWiki列表
         this.refreshTiddlyWikiList();
     }
 
     /**
-     * 创建移动端dock界面
+     * 创建统一dock界面（移动端和桌面端使用相同UI）
      */
-    private createMobileDock(dock: any) {
-        dock.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
-    <svg class="toolbar__icon"><use xlink:href="#iconTiddlyWiki"></use></svg>
-        <div class="toolbar__text">TiddlyWiki</div>
-    </div>
-    <div class="fn__flex-1 plugin-sample__custom-dock">
-        ${dock.data.text}
-    </div>
-</div>`;
-    }
-
-    /**
-     * 创建桌面端dock界面
-     */
-    private createDesktopDock(dock: any) {
+    private createUnifiedDock(dock: any) {
         dock.element.innerHTML = `<div class="fn__flex-1 fn__flex-column">
     <div class="block__icons">
         <div class="block__logo">
@@ -108,13 +91,13 @@ export class dock {
     </div>
 </div>`;
         
-        this.bindDesktopEvents(dock);
+        this.bindUnifiedEvents(dock);
     }
 
     /**
-     * 绑定桌面端事件
+     * 绑定统一事件（移动端和桌面端使用相同事件处理）
      */
-    private bindDesktopEvents(dock: any) {
+    private bindUnifiedEvents(dock: any) {
         // 添加刷新按钮事件监听
         const refreshButton = dock.element.querySelector("[data-type=\"refresh\"]");
         if (refreshButton) {
@@ -221,15 +204,16 @@ export class dock {
     private async refreshTiddlyWikiList() {
         if (!this.dockElement) return;
 
-        const container = this.dockElement.querySelector('.tiddlywiki-list-container');
-        if (!container) return;
-
-        // 显示加载状态
-        container.innerHTML = '<div class="tiddlywiki-loading" style="text-align: center; padding: 20px; color: #999;">加载中...</div>';
-
         try {
             const tiddlyWikiFiles = await this.fileManager.getTiddlyWikiList();
             
+            // 统一的列表更新逻辑
+            const container = this.dockElement.querySelector('.tiddlywiki-list-container');
+            if (!container) return;
+
+            // 显示加载状态
+            container.innerHTML = '<div class="tiddlywiki-loading" style="text-align: center; padding: 20px; color: #999;">加载中...</div>';
+
             if (tiddlyWikiFiles.length === 0) {
                 container.innerHTML = '<div class="tiddlywiki-empty" style="text-align: center; padding: 20px; color: #999;">暂无TiddlyWiki文件<br><small>点击上方 + 按钮创建</small></div>';
                 return;
@@ -246,9 +230,15 @@ export class dock {
             // 绑定文件项事件
             this.bindFileItemEvents(container);
             
+            console.log(`刷新TiddlyWiki列表完成，共 ${tiddlyWikiFiles.length} 个文件`);
         } catch (error) {
             console.error('刷新TiddlyWiki列表失败:', error);
-            container.innerHTML = '<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">加载失败</div>';
+            
+            // 统一的错误处理
+            const container = this.dockElement?.querySelector('.tiddlywiki-list-container');
+            if (container) {
+                container.innerHTML = '<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">加载失败</div>';
+            }
         }
     }
 
@@ -474,6 +464,7 @@ export class dock {
         // TODO: 实现dock数据更新逻辑
         console.log("Updating dock data:", newData);
     }
+
 
     /**
      * 销毁dock相关资源
