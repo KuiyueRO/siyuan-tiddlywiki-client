@@ -172,12 +172,21 @@ export default class PluginSample extends Plugin {
             <svg class="block__logoicon"><use xlink:href="#iconTiddlyWiki"></use></svg>TiddlyWiki
         </div>
         <span class="fn__flex-1 fn__space"></span>
+        <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Add TiddlyWiki Item"><svg><use xlink:href="#iconAdd"></use></svg></span>
         <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ${adaptHotkey("⌘W")}"><svg><use xlink:href="#iconMin"></use></svg></span>
     </div>
     <div class="fn__flex-1 plugin-sample__custom-dock">
         ${dock.data.text}
     </div>
 </div>`;
+                    
+                    // 添加按钮事件监听
+                    const addButton = dock.element.querySelector("[data-type=\"add\"]");
+                    if (addButton) {
+                        addButton.addEventListener("click", () => {
+                            this.handleAddTiddlyWikiItem();
+                        });
+                    }
                 }
             },
             destroy() {
@@ -882,5 +891,44 @@ export default class PluginSample extends Plugin {
             return;
         }
         return editors[0];
+    }
+
+    private handleAddTiddlyWikiItem() {
+        const dialog = new Dialog({
+            title: "Add TiddlyWiki Item",
+            content: `<div class="b3-dialog__content">
+    <input class="b3-text-field fn__block" placeholder="Enter item name" id="tiddlyWikiItemName" style="margin-bottom: 10px;">
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">添加</button>
+</div>`,
+            width: this.isMobile ? "92vw" : "520px",
+        });
+        
+        const nameInput = dialog.element.querySelector("#tiddlyWikiItemName") as HTMLInputElement;
+        const contentInput = dialog.element.querySelector("#tiddlyWikiItemContent") as HTMLTextAreaElement;
+        const btnsElement = dialog.element.querySelectorAll(".b3-button");
+        
+        nameInput.focus();
+        
+        btnsElement[0].addEventListener("click", () => {
+            dialog.destroy();
+        });
+        
+        btnsElement[1].addEventListener("click", () => {
+            const name = nameInput.value.trim();
+            const content = contentInput.value.trim();
+            
+            if (name) {
+                // 这里可以添加实际的TiddlyWiki项目处理逻辑
+                showMessage(`已添加 TiddlyWiki 项目: ${name}`);
+                console.log("Added TiddlyWiki item:", { name, content });
+                dialog.destroy();
+            } else {
+                showMessage("请输入项目名称");
+                nameInput.focus();
+            }
+        });
     }
 }
