@@ -4,18 +4,19 @@ import {
     Dialog,
     adaptHotkey
 } from "siyuan";
+import { ExtendedPlugin } from "./types";
 
 /**
  * TiddlyWiki Dock模块
  * 负责处理TiddlyWiki dock栏的创建、事件处理和相关功能
  */
 export class dock {
-    private plugin: Plugin;
+    private plugin: ExtendedPlugin;
     private isMobile: boolean;
     private dockType: string;
 
     constructor(plugin: Plugin, isMobile: boolean, dockType: string) {
-        this.plugin = plugin;
+        this.plugin = plugin as ExtendedPlugin;
         this.isMobile = isMobile;
         this.dockType = dockType;
     }
