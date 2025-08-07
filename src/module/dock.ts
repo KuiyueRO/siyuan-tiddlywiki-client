@@ -447,8 +447,9 @@ export class dock {
                 border: none;
                 background: white;
             `;
-            // 最严格的沙盒属性，完全阻止导航和顶级访问
-            iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads');
+            // 关键：移除allow-same-origin防止导航劫持
+            // allow-same-origin + allow-scripts = 可以访问父页面，这是危险的！
+            iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads allow-modals');
             // 防止iframe改变父页面URL
             iframe.setAttribute('referrerpolicy', 'no-referrer');
             // 设置iframe name防止target操作
@@ -497,46 +498,10 @@ export class dock {
                 </div>
             `;
 
-            // 加载TiddlyWiki内容
+            // 使用srcdoc而不是src来加载内容，这样更安全
             try {
-                // 在TiddlyWiki内容中注入防导航脚本
-                const preventNavigationScript = `
-                    <script>
-                    (function() {
-                        // 阻止所有形式的页面导航
-                        const originalOpen = window.open;
-                        window.open = function(...args) {
-                            console.warn('TiddlyWiki尝试打开新窗口，已阻止');
-                            return null;
-                        };
-                        
-                        // 阻止location变更
-                        let originalLocation = window.location;
-                        Object.defineProperty(window, 'location', {
-                            get: function() { return originalLocation; },
-                            set: function(value) {
-                                console.warn('TiddlyWiki尝试修改location，已阻止');
-                            }
-                        });
-                        
-                        // 阻止form提交到父页面
-                        document.addEventListener('submit', function(e) {
-                            if (e.target.target === '_top' || e.target.target === '_parent') {
-                                e.preventDefault();
-                                console.warn('阻止了表单提交到父页面');
-                            }
-                        });
-                        
-                        console.log('TiddlyWiki导航保护已启用');
-                    })();
-                    </script>
-                `;
-                
-                // 将脚本注入到HTML头部
-                const modifiedContent = content.replace('<head>', '<head>' + preventNavigationScript);
-                
-                const blob = new Blob([modifiedContent], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
+                // 直接将内容设置为srcdoc，避免blob URL
+                iframe.srcdoc = content;
                 
                 // 设置加载超时
                 const loadTimeout = setTimeout(() => {
@@ -569,14 +534,11 @@ export class dock {
                         closePopup();
                         setTimeout(() => this.openTiddlyWikiInPopup(fileName), 100);
                     });
-                    
-                    URL.revokeObjectURL(url);
                 }, 10000); // 10秒超时
                 
                 iframe.onload = () => {
                     clearTimeout(loadTimeout);
-                    console.log('TiddlyWiki弹出窗口加载完成');
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    console.log('TiddlyWiki弹出窗口加载完成（使用srcdoc）');
                     
                     // 重新添加iframe到页面（防止被清空）
                     if (!contentArea.contains(iframe)) {
@@ -609,15 +571,10 @@ export class dock {
                             </div>
                         </div>
                     `;
-                    
-                    URL.revokeObjectURL(url);
                 };
                 
-                // 延迟设置iframe src，确保DOM完全准备好
-                setTimeout(() => {
-                    contentArea.appendChild(iframe);
-                    iframe.src = url;
-                }, 100);
+                // 直接添加iframe到页面，srcdoc会立即加载
+                contentArea.appendChild(iframe);
                 
             } catch (error) {
                 console.error('创建TiddlyWiki blob失败:', error);
