@@ -5,7 +5,6 @@ import {
     Dialog,
     Menu,
     openTab,
-    adaptHotkey,
     getFrontend,
     getBackend,
     Setting,
@@ -30,6 +29,7 @@ import {
 } from "siyuan";
 import "./index.scss";
 import {IMenuItem} from "siyuan/types";
+import {dock} from "./module/dock";
 
 const STORAGE_NAME = "menu-config";
 const TAB_TYPE = "custom_tab";
@@ -40,6 +40,7 @@ export default class PluginSample extends Plugin {
     private custom: () => Custom;
     private isMobile: boolean;
     private blockIconEventBindThis = this.blockIconEvent.bind(this);
+    private tiddlyWikiDock: dock;
 
     updateProtyleToolbar(toolbar: Array<string | IMenuItem>) {
         toolbar.push("|");
@@ -137,70 +138,10 @@ export default class PluginSample extends Plugin {
                 console.log(this.getOpenedTab());
             },
         });
-        this.addDock({
-            config: {
-                position: "LeftBottom",
-                size: {width: 200, height: 0},
-                icon: "iconTiddlyWiki",
-                title: "TiddlyWiki",
-                hotkey: "⌥⌘W",
-            },
-            data: {
-                text: "This is my custom dock"
-            },
-            type: DOCK_TYPE,
-            resize() {
-                console.log(DOCK_TYPE + " resize");
-            },
-            update() {
-                console.log(DOCK_TYPE + " update");
-            },
-            init: (dock) => {
-                if (this.isMobile) {
-                    dock.element.innerHTML = `<div class="toolbar toolbar--border toolbar--dark">
-    <svg class="toolbar__icon"><use xlink:href="#iconTiddlyWiki"></use></svg>
-        <div class="toolbar__text">TiddlyWiki</div>
-    </div>
-    <div class="fn__flex-1 plugin-sample__custom-dock">
-        ${dock.data.text}
-    </div>
-</div>`;
-                } else {
-                    dock.element.innerHTML = `<div class="fn__flex-1 fn__flex-column">
-    <div class="block__icons">
-        <div class="block__logo">
-            <svg class="block__logoicon"><use xlink:href="#iconTiddlyWiki"></use></svg>TiddlyWiki
-        </div>
-        <span class="fn__flex-1 fn__space"></span>
-        <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Refresh TiddlyWiki"><svg><use xlink:href="#iconRefresh"></use></svg></span>
-        <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Add TiddlyWiki Item"><svg><use xlink:href="#iconAdd"></use></svg></span>
-        <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ${adaptHotkey("⌘W")}"><svg><use xlink:href="#iconMin"></use></svg></span>
-    </div>
-    <div class="fn__flex-1 plugin-sample__custom-dock">
-        ${dock.data.text}
-    </div>
-</div>`;
-                    
-                    // 添加按钮事件监听
-                    const refreshButton = dock.element.querySelector("[data-type=\"refresh\"]");
-                    if (refreshButton) {
-                        refreshButton.addEventListener("click", () => {
-                            this.handleRefreshTiddlyWiki();
-                        });
-                    }
-
-                    const addButton = dock.element.querySelector("[data-type=\"add\"]");
-                    if (addButton) {
-                        addButton.addEventListener("click", () => {
-                            this.handleAddTiddlyWikiItem();
-                        });
-                    }
-                }
-            },
-            destroy() {
-                console.log("destroy dock:", DOCK_TYPE);
-            }
-        });
+        
+        // 初始化TiddlyWiki dock模块
+        this.tiddlyWikiDock = new dock(this, this.isMobile, DOCK_TYPE);
+        this.addDock(this.tiddlyWikiDock.createDockConfig());
 
         const textareaElement = document.createElement("textarea");
         this.setting = new Setting({
@@ -272,6 +213,10 @@ export default class PluginSample extends Plugin {
 
     onunload() {
         console.log(this.i18n.byePlugin);
+        // 清理TiddlyWiki dock资源
+        if (this.tiddlyWikiDock) {
+            this.tiddlyWikiDock.destroy();
+        }
     }
 
     uninstall() {
@@ -899,60 +844,5 @@ export default class PluginSample extends Plugin {
             return;
         }
         return editors[0];
-    }
-
-    private handleAddTiddlyWikiItem() {
-        const dialog = new Dialog({
-            title: "Add TiddlyWiki Item",
-            content: `<div class="b3-dialog__content">
-    <input class="b3-text-field fn__block" placeholder="Enter item name" id="tiddlyWikiItemName" style="margin-bottom: 10px;">
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">添加</button>
-</div>`,
-            width: this.isMobile ? "92vw" : "520px",
-        });
-        
-        const nameInput = dialog.element.querySelector("#tiddlyWikiItemName") as HTMLInputElement;
-        const contentInput = dialog.element.querySelector("#tiddlyWikiItemContent") as HTMLTextAreaElement;
-        const btnsElement = dialog.element.querySelectorAll(".b3-button");
-        
-        nameInput.focus();
-        
-        btnsElement[0].addEventListener("click", () => {
-            dialog.destroy();
-        });
-        
-        btnsElement[1].addEventListener("click", () => {
-            const name = nameInput.value.trim();
-            const content = contentInput.value.trim();
-            
-            if (name) {
-                // 这里可以添加实际的TiddlyWiki项目处理逻辑
-                showMessage(`已添加 TiddlyWiki 项目: ${name}`);
-                console.log("Added TiddlyWiki item:", { name, content });
-                dialog.destroy();
-            } else {
-                showMessage("请输入项目名称");
-                nameInput.focus();
-            }
-        });
-    }
-
-    private handleRefreshTiddlyWiki() {
-        showMessage("正在刷新 TiddlyWiki...");
-        console.log("Refreshing TiddlyWiki...");
-        
-        // 模拟刷新操作
-        setTimeout(() => {
-            showMessage("TiddlyWiki 已刷新");
-            console.log("TiddlyWiki refreshed successfully");
-            
-            // 这里可以添加实际的刷新逻辑，比如：
-            // - 重新加载TiddlyWiki数据
-            // - 更新dock面板内容
-            // - 同步数据源等
-        }, 1000);
     }
 }
