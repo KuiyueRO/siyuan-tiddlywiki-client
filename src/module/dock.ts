@@ -350,12 +350,297 @@ export class dock {
     /**
      * 打开TiddlyWiki文件
      */
-    private openTiddlyWiki(fileName: string) {
-        // 通过插件的tab模块打开TiddlyWiki
-        if (this.plugin.tabModule) {
-            this.plugin.tabModule.openTiddlyWikiInTab(fileName);
+    private async openTiddlyWiki(fileName: string) {
+        if (this.isMobile) {
+            // 移动端使用弹出窗口方式
+            await this.openTiddlyWikiInPopup(fileName);
         } else {
-            showMessage("无法打开TiddlyWiki: Tab模块未初始化");
+            // 桌面端使用tab方式
+            if (this.plugin.tabModule) {
+                this.plugin.tabModule.openTiddlyWikiInTab(fileName);
+            } else {
+                showMessage("无法打开TiddlyWiki: Tab模块未初始化");
+            }
+        }
+    }
+
+    /**
+     * 在弹出窗口中打开TiddlyWiki（移动端使用）
+     */
+    private async openTiddlyWikiInPopup(fileName: string) {
+        try {
+            // 读取TiddlyWiki内容
+            const content = await this.fileManager.readTiddlyWiki(fileName);
+            if (!content) {
+                showMessage("无法读取TiddlyWiki文件内容");
+                return;
+            }
+
+            // 创建弹出窗口容器
+            const popup = document.createElement('div');
+            popup.className = 'tiddlywiki-popup';
+            popup.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+
+            // 创建弹出窗口内容
+            const popupContent = document.createElement('div');
+            popupContent.style.cssText = `
+                width: 95%;
+                height: 90%;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            `;
+
+            // 创建标题栏
+            const titleBar = document.createElement('div');
+            const displayName = fileName.replace('.html', '');
+            titleBar.innerHTML = `
+                <div style="
+                    padding: 12px 16px;
+                    background: #f5f5f5;
+                    border-bottom: 1px solid #e0e0e0;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-weight: 500;
+                ">
+                    <span>TiddlyWiki: ${displayName}</span>
+                    <button class="close-btn" style="
+                        background: none;
+                        border: none;
+                        font-size: 18px;
+                        cursor: pointer;
+                        color: #666;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                    ">&times;</button>
+                </div>
+            `;
+
+            // 创建内容区域
+            const contentArea = document.createElement('div');
+            contentArea.style.cssText = `
+                flex: 1;
+                overflow: hidden;
+                position: relative;
+            `;
+
+            // 创建iframe来渲染TiddlyWiki
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = `
+                width: 100%;
+                height: 100%;
+                border: none;
+                background: white;
+            `;
+            // 最严格的沙盒属性，完全阻止导航和顶级访问
+            iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads');
+            // 防止iframe改变父页面URL
+            iframe.setAttribute('referrerpolicy', 'no-referrer');
+            // 设置iframe name防止target操作
+            iframe.name = `tiddlywiki-${Date.now()}`;
+
+            // 组装弹出窗口
+            contentArea.appendChild(iframe);
+            popupContent.appendChild(titleBar);
+            popupContent.appendChild(contentArea);
+            popup.appendChild(popupContent);
+
+            // 定义关闭函数
+            const closePopup = () => {
+                // 移除弹出窗口
+                if (popup.parentNode) {
+                    popup.parentNode.removeChild(popup);
+                }
+            };
+
+            // 添加关闭事件
+            const closeBtn = titleBar.querySelector('.close-btn');
+            closeBtn.addEventListener('click', closePopup);
+            popup.addEventListener('click', (e) => {
+                if (e.target === popup) {
+                    closePopup();
+                }
+            });
+
+            // 添加到页面
+            document.body.appendChild(popup);
+
+            // 显示加载状态
+            contentArea.innerHTML = `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100%;
+                    color: #666;
+                    text-align: center;
+                ">
+                    <div>
+                        <div style="margin-bottom: 8px;">🔄</div>
+                        <div>正在加载 TiddlyWiki...</div>
+                    </div>
+                </div>
+            `;
+
+            // 加载TiddlyWiki内容
+            try {
+                // 在TiddlyWiki内容中注入防导航脚本
+                const preventNavigationScript = `
+                    <script>
+                    (function() {
+                        // 阻止所有形式的页面导航
+                        const originalOpen = window.open;
+                        window.open = function(...args) {
+                            console.warn('TiddlyWiki尝试打开新窗口，已阻止');
+                            return null;
+                        };
+                        
+                        // 阻止location变更
+                        let originalLocation = window.location;
+                        Object.defineProperty(window, 'location', {
+                            get: function() { return originalLocation; },
+                            set: function(value) {
+                                console.warn('TiddlyWiki尝试修改location，已阻止');
+                            }
+                        });
+                        
+                        // 阻止form提交到父页面
+                        document.addEventListener('submit', function(e) {
+                            if (e.target.target === '_top' || e.target.target === '_parent') {
+                                e.preventDefault();
+                                console.warn('阻止了表单提交到父页面');
+                            }
+                        });
+                        
+                        console.log('TiddlyWiki导航保护已启用');
+                    })();
+                    </script>
+                `;
+                
+                // 将脚本注入到HTML头部
+                const modifiedContent = content.replace('<head>', '<head>' + preventNavigationScript);
+                
+                const blob = new Blob([modifiedContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                
+                // 设置加载超时
+                const loadTimeout = setTimeout(() => {
+                    console.warn('TiddlyWiki加载超时');
+                    contentArea.innerHTML = `
+                        <div style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100%;
+                            color: #f56c6c;
+                            text-align: center;
+                            padding: 20px;
+                        ">
+                            <div style="font-size: 18px; margin-bottom: 8px;">⏰</div>
+                            <div style="margin-bottom: 12px;">加载超时</div>
+                            <div style="font-size: 12px; color: #999; margin-bottom: 16px;">
+                                TiddlyWiki可能过大或存在兼容性问题
+                            </div>
+                            <button class="retry-btn b3-button b3-button--outline" style="font-size: 12px; padding: 6px 12px;">
+                                重试
+                            </button>
+                        </div>
+                    `;
+                    
+                    // 添加重试按钮事件
+                    const retryBtn = contentArea.querySelector('.retry-btn');
+                    retryBtn?.addEventListener('click', () => {
+                        closePopup();
+                        setTimeout(() => this.openTiddlyWikiInPopup(fileName), 100);
+                    });
+                    
+                    URL.revokeObjectURL(url);
+                }, 10000); // 10秒超时
+                
+                iframe.onload = () => {
+                    clearTimeout(loadTimeout);
+                    console.log('TiddlyWiki弹出窗口加载完成');
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    
+                    // 重新添加iframe到页面（防止被清空）
+                    if (!contentArea.contains(iframe)) {
+                        contentArea.innerHTML = '';
+                        contentArea.appendChild(iframe);
+                    }
+                    
+                    console.log('TiddlyWiki iframe已加载，沙盒限制生效');
+                };
+                
+                iframe.onerror = (error) => {
+                    clearTimeout(loadTimeout);
+                    console.error("TiddlyWiki弹出窗口加载错误:", error);
+                    contentArea.innerHTML = `
+                        <div style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100%;
+                            color: #f56c6c;
+                            text-align: center;
+                            padding: 20px;
+                        ">
+                            <div style="font-size: 18px; margin-bottom: 8px;">❌</div>
+                            <div style="margin-bottom: 12px;">加载失败</div>
+                            <div style="font-size: 12px; color: #999;">
+                                无法加载 ${fileName}<br>
+                                可能是文件损坏或不兼容
+                            </div>
+                        </div>
+                    `;
+                    
+                    URL.revokeObjectURL(url);
+                };
+                
+                // 延迟设置iframe src，确保DOM完全准备好
+                setTimeout(() => {
+                    contentArea.appendChild(iframe);
+                    iframe.src = url;
+                }, 100);
+                
+            } catch (error) {
+                console.error('创建TiddlyWiki blob失败:', error);
+                contentArea.innerHTML = `
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100%;
+                        color: #f56c6c;
+                        text-align: center;
+                    ">
+                        <div>
+                            <div>❌ 创建失败</div>
+                            <div style="font-size: 12px; margin-top: 8px;">内容处理错误</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+        } catch (error) {
+            console.error('打开弹出窗口失败:', error);
+            showMessage("打开TiddlyWiki失败");
         }
     }
 
