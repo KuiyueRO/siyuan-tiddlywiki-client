@@ -102,10 +102,6 @@ export default class PluginSample extends Plugin {
         this.tiddlyWikiDock = new dock(this, this.isMobile, DOCK_TYPE);
         this.addDock(this.tiddlyWikiDock.createDockConfig());
         
-        // 初始化TiddlyWiki dock模块
-        this.tiddlyWikiDock = new dock(this, this.isMobile, DOCK_TYPE);
-        this.addDock(this.tiddlyWikiDock.createDockConfig());
-        
         // 添加顶部栏图标
         this.addTopBarIcon();
         

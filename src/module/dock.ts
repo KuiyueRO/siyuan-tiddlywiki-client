@@ -2,9 +2,11 @@ import {
     Plugin,
     showMessage,
     Dialog,
-    adaptHotkey
+    adaptHotkey,
+    confirm
 } from "siyuan";
 import { ExtendedPlugin } from "./types";
+import { FileManager } from "./file-manager";
 
 /**
  * TiddlyWiki Dock模块
@@ -14,11 +16,17 @@ export class dock {
     private plugin: ExtendedPlugin;
     private isMobile: boolean;
     private dockType: string;
+    private fileManager: FileManager;
+    private dockElement: HTMLElement | null = null;
 
     constructor(plugin: Plugin, isMobile: boolean, dockType: string) {
         this.plugin = plugin as ExtendedPlugin;
         this.isMobile = isMobile;
         this.dockType = dockType;
+        this.fileManager = new FileManager(plugin);
+        
+        // 初始化文件管理器
+        this.fileManager.initialize().catch(console.error);
     }
 
     /**
@@ -56,11 +64,15 @@ export class dock {
      * 初始化dock界面
      */
     private initDock(dock: any) {
+        this.dockElement = dock.element;
         if (this.isMobile) {
             this.createMobileDock(dock);
         } else {
             this.createDesktopDock(dock);
         }
+        
+        // 初始化后立即加载TiddlyWiki列表
+        this.refreshTiddlyWikiList();
     }
 
     /**
@@ -87,12 +99,12 @@ export class dock {
             <svg class="block__logoicon"><use xlink:href="#iconTiddlyWiki"></use></svg>TiddlyWiki
         </div>
         <span class="fn__flex-1 fn__space"></span>
-        <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Refresh TiddlyWiki"><svg><use xlink:href="#iconRefresh"></use></svg></span>
-        <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Add TiddlyWiki Item"><svg><use xlink:href="#iconAdd"></use></svg></span>
+        <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="刷新列表"><svg><use xlink:href="#iconRefresh"></use></svg></span>
+        <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="新建TiddlyWiki"><svg><use xlink:href="#iconAdd"></use></svg></span>
         <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ${adaptHotkey("⌘W")}"><svg><use xlink:href="#iconMin"></use></svg></span>
     </div>
-    <div class="fn__flex-1 plugin-sample__custom-dock">
-        ${dock.data.text}
+    <div class="fn__flex-1 tiddlywiki-list-container" style="overflow-y: auto; padding: 4px;">
+        <div class="tiddlywiki-loading">加载中...</div>
     </div>
 </div>`;
         
@@ -131,28 +143,36 @@ export class dock {
     /**
      * 处理添加TiddlyWiki项目
      */
-    private handleAddTiddlyWikiItem() {
+    private async handleAddTiddlyWikiItem() {
+        // 获取可用模板列表
+        const templates = await this.fileManager.getTemplates();
+        const templateOptions = templates.map(template => 
+            `<option value="${template}">${template}</option>`
+        ).join('');
+
         const dialog = new Dialog({
-            title: "Add TiddlyWiki Item",
+            title: "新建 TiddlyWiki",
             content: `<div class="b3-dialog__content">
     <div class="b3-form__row">
-        <label class="b3-form__label">项目名称</label>
-        <input class="b3-text-field fn__block" placeholder="输入项目名称" id="tiddlyWikiItemName">
+        <label class="b3-form__label">名称</label>
+        <input class="b3-text-field fn__block" placeholder="输入TiddlyWiki名称" id="tiddlyWikiItemName">
     </div>
     <div class="b3-form__row">
-        <label class="b3-form__label">项目描述（可选）</label>
-        <textarea class="b3-text-field fn__block" placeholder="输入项目描述" id="tiddlyWikiItemContent" rows="3"></textarea>
+        <label class="b3-form__label">模板</label>
+        <select class="b3-select fn__block" id="tiddlyWikiTemplate">
+            ${templateOptions}
+        </select>
     </div>
 </div>
 <div class="b3-dialog__action">
     <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">添加</button>
+    <button class="b3-button b3-button--text">创建</button>
 </div>`,
-            width: this.isMobile ? "92vw" : "520px",
+            width: this.isMobile ? "92vw" : "480px",
         });
         
         const nameInput = dialog.element.querySelector("#tiddlyWikiItemName") as HTMLInputElement;
-        const contentInput = dialog.element.querySelector("#tiddlyWikiItemContent") as HTMLTextAreaElement;
+        const templateSelect = dialog.element.querySelector("#tiddlyWikiTemplate") as HTMLSelectElement;
         const btnsElement = dialog.element.querySelectorAll(".b3-button");
         
         nameInput.focus();
@@ -162,16 +182,19 @@ export class dock {
             dialog.destroy();
         });
         
-        // 添加按钮
-        btnsElement[1].addEventListener("click", () => {
+        // 创建按钮
+        btnsElement[1].addEventListener("click", async () => {
             const name = nameInput.value.trim();
-            const content = contentInput.value.trim();
+            const template = templateSelect.value;
             
             if (name) {
-                this.addTiddlyWikiItem(name, content);
-                dialog.destroy();
+                const success = await this.fileManager.createTiddlyWiki(name, template);
+                if (success) {
+                    this.refreshTiddlyWikiList();
+                    dialog.destroy();
+                }
             } else {
-                showMessage("请输入项目名称");
+                showMessage("请输入TiddlyWiki名称");
                 nameInput.focus();
             }
         });
@@ -184,47 +207,240 @@ export class dock {
         });
     }
 
-    /**
-     * 添加TiddlyWiki项目的实际逻辑
-     */
-    private addTiddlyWikiItem(name: string, content: string) {
-        // 这里可以添加实际的TiddlyWiki项目处理逻辑
-        showMessage(`已添加 TiddlyWiki 项目: ${name}`);
-        console.log("Added TiddlyWiki item:", { name, content });
-        
-        // TODO: 实现实际的添加逻辑
-        // - 创建TiddlyWiki文件
-        // - 保存到存储位置
-        // - 更新项目列表
-        // - 刷新dock显示
-    }
 
     /**
      * 处理刷新TiddlyWiki
      */
     private handleRefreshTiddlyWiki() {
-        showMessage("正在刷新 TiddlyWiki...");
-        console.log("Refreshing TiddlyWiki...");
-        
-        // 模拟刷新操作
-        setTimeout(() => {
-            showMessage("TiddlyWiki 已刷新");
-            console.log("TiddlyWiki refreshed successfully");
-            
-            // TODO: 实现实际的刷新逻辑
-            // - 重新加载TiddlyWiki数据
-            // - 更新dock面板内容
-            // - 同步数据源等
-            this.refreshDockContent();
-        }, 1000);
+        this.refreshTiddlyWikiList();
     }
 
     /**
-     * 刷新dock内容
+     * 刷新TiddlyWiki文件列表
      */
-    private refreshDockContent() {
-        // TODO: 实现dock内容刷新逻辑
-        console.log("Refreshing dock content...");
+    private async refreshTiddlyWikiList() {
+        if (!this.dockElement) return;
+
+        const container = this.dockElement.querySelector('.tiddlywiki-list-container');
+        if (!container) return;
+
+        // 显示加载状态
+        container.innerHTML = '<div class="tiddlywiki-loading" style="text-align: center; padding: 20px; color: #999;">加载中...</div>';
+
+        try {
+            const tiddlyWikiFiles = await this.fileManager.getTiddlyWikiList();
+            
+            if (tiddlyWikiFiles.length === 0) {
+                container.innerHTML = '<div class="tiddlywiki-empty" style="text-align: center; padding: 20px; color: #999;">暂无TiddlyWiki文件<br><small>点击上方 + 按钮创建</small></div>';
+                return;
+            }
+
+            // 创建文件列表HTML
+            let listHTML = '';
+            for (const fileName of tiddlyWikiFiles) {
+                listHTML += this.createFileItemHTML(fileName);
+            }
+
+            container.innerHTML = `<div class="tiddlywiki-file-list">${listHTML}</div>`;
+            
+            // 绑定文件项事件
+            this.bindFileItemEvents(container);
+            
+        } catch (error) {
+            console.error('刷新TiddlyWiki列表失败:', error);
+            container.innerHTML = '<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">加载失败</div>';
+        }
+    }
+
+    /**
+     * 创建文件项HTML
+     */
+    private createFileItemHTML(fileName: string): string {
+        const displayName = fileName.replace('.html', '');
+        return `
+            <div class="tiddlywiki-file-item" data-filename="${fileName}" style="
+                margin: 2px 0;
+                padding: 8px;
+                border-radius: 4px;
+                cursor: pointer;
+                border: 1px solid var(--b3-border-color);
+                background: var(--b3-theme-background);
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            ">
+                <svg style="width: 16px; height: 16px; flex-shrink: 0;"><use xlink:href="#iconTiddlyWiki"></use></svg>
+                <span class="file-name" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${fileName}">${displayName}</span>
+                <div class="file-actions" style="display: flex; gap: 2px;">
+                    <span class="file-action file-rename b3-tooltips b3-tooltips__sw" aria-label="重命名" data-action="rename" style="
+                        width: 16px; 
+                        height: 16px; 
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 2px;
+                        opacity: 0.7;
+                    ">
+                        <svg style="width: 12px; height: 12px;"><use xlink:href="#iconEdit"></use></svg>
+                    </span>
+                    <span class="file-action file-delete b3-tooltips b3-tooltips__sw" aria-label="删除" data-action="delete" style="
+                        width: 16px; 
+                        height: 16px; 
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 2px;
+                        opacity: 0.7;
+                    ">
+                        <svg style="width: 12px; height: 12px;"><use xlink:href="#iconTrashcan"></use></svg>
+                    </span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * 绑定文件项事件
+     */
+    private bindFileItemEvents(container: Element) {
+        const fileItems = container.querySelectorAll('.tiddlywiki-file-item');
+        
+        fileItems.forEach(item => {
+            const fileName = item.getAttribute('data-filename');
+            if (!fileName) return;
+
+            // 点击文件名打开文件
+            const fileNameSpan = item.querySelector('.file-name');
+            if (fileNameSpan) {
+                fileNameSpan.addEventListener('click', () => {
+                    this.openTiddlyWiki(fileName);
+                });
+            }
+
+            // 重命名按钮
+            const renameBtn = item.querySelector('[data-action="rename"]');
+            if (renameBtn) {
+                renameBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.renameTiddlyWiki(fileName);
+                });
+            }
+
+            // 删除按钮
+            const deleteBtn = item.querySelector('[data-action="delete"]');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteTiddlyWiki(fileName);
+                });
+            }
+
+            // 悬停效果
+            item.addEventListener('mouseenter', () => {
+                (item as HTMLElement).style.background = 'var(--b3-list-hover)';
+                const actions = item.querySelectorAll('.file-action') as NodeListOf<HTMLElement>;
+                actions.forEach(action => {
+                    action.style.opacity = '1';
+                });
+            });
+
+            item.addEventListener('mouseleave', () => {
+                (item as HTMLElement).style.background = 'var(--b3-theme-background)';
+                const actions = item.querySelectorAll('.file-action') as NodeListOf<HTMLElement>;
+                actions.forEach(action => {
+                    action.style.opacity = '0.7';
+                });
+            });
+        });
+    }
+
+    /**
+     * 打开TiddlyWiki文件
+     */
+    private openTiddlyWiki(fileName: string) {
+        // 通过插件的tab模块打开TiddlyWiki
+        if (this.plugin.tabModule) {
+            this.plugin.tabModule.openTiddlyWikiInTab(fileName);
+        } else {
+            showMessage("无法打开TiddlyWiki: Tab模块未初始化");
+        }
+    }
+
+    /**
+     * 重命名TiddlyWiki文件
+     */
+    private renameTiddlyWiki(fileName: string) {
+        const currentName = fileName.replace('.html', '');
+        
+        const dialog = new Dialog({
+            title: "重命名 TiddlyWiki",
+            content: `<div class="b3-dialog__content">
+    <div class="b3-form__row">
+        <label class="b3-form__label">新名称</label>
+        <input class="b3-text-field fn__block" placeholder="输入新名称" id="newTiddlyWikiName" value="${currentName}">
+    </div>
+</div>
+<div class="b3-dialog__action">
+    <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">重命名</button>
+</div>`,
+            width: this.isMobile ? "92vw" : "420px",
+        });
+        
+        const nameInput = dialog.element.querySelector("#newTiddlyWikiName") as HTMLInputElement;
+        const btnsElement = dialog.element.querySelectorAll(".b3-button");
+        
+        nameInput.focus();
+        nameInput.select();
+        
+        // 取消按钮
+        btnsElement[0].addEventListener("click", () => {
+            dialog.destroy();
+        });
+        
+        // 重命名按钮
+        btnsElement[1].addEventListener("click", async () => {
+            const newName = nameInput.value.trim();
+            
+            if (newName && newName !== currentName) {
+                const success = await this.fileManager.renameTiddlyWiki(fileName, newName);
+                if (success) {
+                    this.refreshTiddlyWikiList();
+                    dialog.destroy();
+                }
+            } else if (!newName) {
+                showMessage("请输入新名称");
+                nameInput.focus();
+            } else {
+                dialog.destroy();
+            }
+        });
+
+        // 回车键确认
+        nameInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                (btnsElement[1] as HTMLButtonElement).click();
+            }
+        });
+    }
+
+    /**
+     * 删除TiddlyWiki文件
+     */
+    private deleteTiddlyWiki(fileName: string) {
+        confirm(
+            "删除确认",
+            `确定要删除 "${fileName}" 吗？此操作不可恢复。`,
+            async () => {
+                const success = await this.fileManager.deleteTiddlyWiki(fileName);
+                if (success) {
+                    this.refreshTiddlyWikiList();
+                }
+            }
+        );
     }
 
     /**
@@ -264,6 +480,8 @@ export class dock {
      */
     destroy() {
         console.log("TiddlyWiki dock destroyed");
-        // TODO: 清理事件监听器和其他资源
+        if (this.fileManager) {
+            this.fileManager.destroy();
+        }
     }
 }
