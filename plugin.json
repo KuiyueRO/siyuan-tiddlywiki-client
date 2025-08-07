@@ -1,6 +1,6 @@
 {
-  "name": "plugin-sample",
-  "author": "Vanessa",
+  "name": "siyuan-tiddlywiki-client",
+  "author": "ACai",
   "url": "https://github.com/siyuan-note/plugin-sample",
   "version": "0.4.1",
   "minAppVersion": "3.2.1",
@@ -21,8 +21,8 @@
     "desktop-window"
   ],
   "displayName": {
-    "default": "Plugin Sample",
-    "zh_CN": "插件示例"
+    "default": "Tiddlywiki",
+    "zh_CN": "Tiddlywiki"
   },
   "description": {
     "default": "This is a plugin sample",
