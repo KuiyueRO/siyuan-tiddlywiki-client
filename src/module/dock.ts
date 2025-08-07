@@ -492,7 +492,17 @@ export class dock {
                     text-align: center;
                 ">
                     <div>
-                        <div style="margin-bottom: 8px;">🔄</div>
+                        <div style="margin-bottom: 8px;">
+                            <svg style="width: 32px; height: 32px; animation: spin 1s linear infinite;">
+                                <use xlink:href="#iconTiddlyWiki"></use>
+                            </svg>
+                            <style>
+                                @keyframes spin {
+                                    from { transform: rotate(0deg); }
+                                    to { transform: rotate(360deg); }
+                                }
+                            </style>
+                        </div>
                         <div>正在加载 TiddlyWiki...</div>
                     </div>
                 </div>
@@ -500,11 +510,12 @@ export class dock {
 
             // 使用srcdoc而不是src来加载内容，这样更安全
             try {
-                // 直接将内容设置为srcdoc，避免blob URL
-                iframe.srcdoc = content;
+                let isLoaded = false; // 防止重复触发onload
                 
                 // 设置加载超时
                 const loadTimeout = setTimeout(() => {
+                    if (isLoaded) return; // 已经加载完成，忽略超时
+                    
                     console.warn('TiddlyWiki加载超时');
                     contentArea.innerHTML = `
                         <div style="
@@ -517,7 +528,11 @@ export class dock {
                             text-align: center;
                             padding: 20px;
                         ">
-                            <div style="font-size: 18px; margin-bottom: 8px;">⏰</div>
+                            <div style="margin-bottom: 8px;">
+                                <svg style="width: 24px; height: 24px; opacity: 0.7;">
+                                    <use xlink:href="#iconTiddlyWiki"></use>
+                                </svg>
+                            </div>
                             <div style="margin-bottom: 12px;">加载超时</div>
                             <div style="font-size: 12px; color: #999; margin-bottom: 16px;">
                                 TiddlyWiki可能过大或存在兼容性问题
@@ -537,19 +552,28 @@ export class dock {
                 }, 10000); // 10秒超时
                 
                 iframe.onload = () => {
+                    if (isLoaded) {
+                        console.log('TiddlyWiki onload重复触发，忽略');
+                        return; // 防止重复处理
+                    }
+                    
+                    isLoaded = true;
                     clearTimeout(loadTimeout);
                     console.log('TiddlyWiki弹出窗口加载完成（使用srcdoc）');
                     
-                    // 重新添加iframe到页面（防止被清空）
-                    if (!contentArea.contains(iframe)) {
-                        contentArea.innerHTML = '';
-                        contentArea.appendChild(iframe);
+                    // 只在首次加载时清理加载提示
+                    const loadingDiv = contentArea.querySelector('div');
+                    if (loadingDiv && loadingDiv.textContent.includes('正在加载')) {
+                        loadingDiv.remove();
                     }
                     
                     console.log('TiddlyWiki iframe已加载，沙盒限制生效');
                 };
                 
                 iframe.onerror = (error) => {
+                    if (isLoaded) return; // 已经加载完成，忽略错误
+                    
+                    isLoaded = true;
                     clearTimeout(loadTimeout);
                     console.error("TiddlyWiki弹出窗口加载错误:", error);
                     contentArea.innerHTML = `
@@ -563,7 +587,11 @@ export class dock {
                             text-align: center;
                             padding: 20px;
                         ">
-                            <div style="font-size: 18px; margin-bottom: 8px;">❌</div>
+                            <div style="margin-bottom: 8px;">
+                                <svg style="width: 24px; height: 24px; opacity: 0.7; color: #f56c6c;">
+                                    <use xlink:href="#iconTiddlyWiki"></use>
+                                </svg>
+                            </div>
                             <div style="margin-bottom: 12px;">加载失败</div>
                             <div style="font-size: 12px; color: #999;">
                                 无法加载 ${fileName}<br>
@@ -575,6 +603,9 @@ export class dock {
                 
                 // 直接添加iframe到页面，srcdoc会立即加载
                 contentArea.appendChild(iframe);
+                
+                // 直接将内容设置为srcdoc，避免blob URL
+                iframe.srcdoc = content;
                 
             } catch (error) {
                 console.error('创建TiddlyWiki blob失败:', error);

@@ -236,20 +236,57 @@ export class FileManager {
             // 先确保template目录存在
             await this.ensureTemplateExists();
             
-            // 检查是否有empty.html
-            const emptyHtmlPath = `${this.templateDir}/empty.html`;
-            const existingData = await this.plugin.loadData(emptyHtmlPath);
+            // 动态读取template目录中的所有.html文件
+            const templates: string[] = [];
             
-            if (existingData) {
-                return ['empty.html'];
-            } else {
-                console.warn("模板文件不存在，尝试重新复制");
-                await this.copyEmptyHtmlTemplate();
-                return ['empty.html'];
+            // 尝试读取template目录
+            try {
+                // 使用思源API读取目录内容
+                const response = await fetch('/api/file/readDir', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        path: this.templateDir
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.code === 0 && result.data) {
+                        // 过滤出.html文件
+                        for (const file of result.data) {
+                            if (file.name.endsWith('.html')) {
+                                templates.push(file.name);
+                            }
+                        }
+                    }
+                }
+            } catch (apiError) {
+                console.warn("API读取目录失败，尝试fallback:", apiError);
             }
+            
+            // 如果没有找到模板，确保至少有empty.html
+            if (templates.length === 0) {
+                const emptyHtmlPath = `${this.templateDir}/empty.html`;
+                const existingData = await this.plugin.loadData(emptyHtmlPath);
+                
+                if (existingData) {
+                    templates.push('empty.html');
+                } else {
+                    console.warn("模板文件不存在，尝试重新复制");
+                    await this.copyEmptyHtmlTemplate();
+                    templates.push('empty.html');
+                }
+            }
+            
+            console.log("找到的模板文件:", templates);
+            return templates;
+            
         } catch (error) {
             console.error("获取模板列表时出错:", error);
-            return ['empty.html'];
+            return ['empty.html']; // fallback
         }
     }
 
