@@ -75,54 +75,30 @@ export class FileManager {
      */
     private async copyEmptyHtmlTemplate() {
         try {
-            // 尝试多种可能的路径来访问插件内置的template文件
-            // 思源笔记插件的静态资源路径格式
             const possiblePaths = [
                 `/plugins/${this.plugin.name}/template/empty.html`,
                 `/plugins/${this.plugin.name}/dist/template/empty.html`,
-                `/data/plugins/${this.plugin.name}/template/empty.html`,
-                `/data/plugins/${this.plugin.name}/dist/template/empty.html`,
-                `./plugins/${this.plugin.name}/template/empty.html`,
-                `./plugins/${this.plugin.name}/dist/template/empty.html`,
-                // 尝试当前域名下的路径
-                `${window.location.origin}/plugins/${this.plugin.name}/template/empty.html`,
-                `${window.location.origin}/plugins/${this.plugin.name}/dist/template/empty.html`
+                `${window.location.origin}/plugins/${this.plugin.name}/template/empty.html`
             ];
-
-            let htmlContent: string | null = null;
-            let successPath: string | null = null;
 
             for (const path of possiblePaths) {
                 try {
-                    console.log(this.plugin.i18n.tryingPath + ": " + path);
                     const response = await fetch(path);
-                    
                     if (response.ok) {
-                        htmlContent = await response.text();
-                        successPath = path;
-                        console.log(this.plugin.i18n.successfullyGetTemplate + ": " + path);
-                        break;
-                    } else {
-                        console.log(this.plugin.i18n.pathFailed + " " + path + ", " + this.plugin.i18n.pathFailed + ": " + response.status);
+                        const htmlContent = await response.text();
+                        const templatePath = `${this.templateDir}/empty.html`;
+                        await this.plugin.saveData(templatePath, htmlContent);
+                        console.log(this.plugin.i18n.emptyTemplateCopied + ":", templatePath);
+                        showMessage(this.plugin.i18n.templateInitSuccess);
+                        return;
                     }
                 } catch (pathError) {
-                    console.log(this.plugin.i18n.pathError + " " + path + ":", pathError);
                     continue;
                 }
             }
 
-            if (htmlContent && successPath) {
-                // 使用插件数据API保存到数据目录
-                const templatePath = `${this.templateDir}/empty.html`;
-                await this.plugin.saveData(templatePath, htmlContent);
-                
-                console.log(this.plugin.i18n.emptyTemplateCopied + ":", templatePath);
-                showMessage(this.plugin.i18n.templateInitSuccess);
-            } else {
-                // 如果所有路径都失败，创建一个基础的TiddlyWiki模板
-                console.warn(this.plugin.i18n.cannotAccessBuiltinTemplate);
-                await this.createBasicTemplate();
-            }
+            console.warn(this.plugin.i18n.cannotAccessBuiltinTemplate);
+            await this.createBasicTemplate();
         } catch (error) {
             console.error(this.plugin.i18n.copyTemplateError + ":", error);
             // 如果复制失败，尝试创建基础模板
@@ -232,52 +208,24 @@ export class FileManager {
      * 获取所有可用的模板文件
      */
     async getTemplates(): Promise<string[]> {
-        try {
-            // 先确保template目录存在
-            await this.ensureTemplateExists();
-            
-            // 由于思源API可能没有readDir功能，我们使用更直接的方法
-            // 尝试读取常见的模板文件名
-            const knownTemplates = [
-                "empty.html",
-                "tiddlywiki.html", 
-                "basic.html",
-                "default.html",
-                "template.html",
-                "wiki.html"
-            ];
-            
-            const templates: string[] = [];
-            
-            // 逐一检查已知模板文件是否存在
-            for (const templateName of knownTemplates) {
-                try {
-                    const templatePath = `${this.templateDir}/${templateName}`;
-                    const data = await this.plugin.loadData(templatePath);
-                    if (data) {
-                        templates.push(templateName);
-                        console.log(`找到模板文件: ${templateName}`);
-                    }
-                } catch (error) {
-                    // 文件不存在，继续检查下一个
-                    continue;
-                }
+        const knownTemplates = ["empty.html", "tiddlywiki.html", "basic.html"];
+        const templates: string[] = [];
+        
+        for (const templateName of knownTemplates) {
+            try {
+                const data = await this.plugin.loadData(`${this.templateDir}/${templateName}`);
+                if (data) templates.push(templateName);
+            } catch {
+                continue;
             }
-            
-            // 如果没有找到任何模板，确保至少有empty.html
-            if (templates.length === 0) {
-                console.warn("未找到任何模板文件，创建默认模板");
-                await this.copyEmptyHtmlTemplate();
-                templates.push("empty.html");
-            }
-            
-            console.log(this.plugin.i18n.foundTemplateFiles + ":", templates);
-            return templates;
-            
-        } catch (error) {
-            console.error(this.plugin.i18n.getTemplateListError + ":", error);
-            return ["empty.html"]; // fallback
         }
+        
+        if (templates.length === 0) {
+            await this.copyEmptyHtmlTemplate();
+            templates.push("empty.html");
+        }
+        
+        return templates;
     }
 
     /**
@@ -309,16 +257,10 @@ export class FileManager {
             await this.plugin.saveData(filePath, templateContent);
 
             // 更新文件列表
-            try {
-                const currentList = await this.getTiddlyWikiList();
-                if (currentList.indexOf(name) === -1) {
-                    currentList.push(name);
-                    await this.updateFileList(currentList);
-                }
-            } catch (listError) {
-                console.error("更新文件列表时出错:", listError);
-                // 如果获取列表失败，直接创建新列表
-                await this.updateFileList([name]);
+            const currentList = await this.getTiddlyWikiList();
+            if (!currentList.includes(name)) {
+                currentList.push(name);
+                await this.updateFileList(currentList);
             }
 
             showMessage(`${this.plugin.i18n.dockTitle} "${name}" ${this.plugin.i18n.tiddlyWikiCreated}`);
@@ -362,77 +304,37 @@ export class FileManager {
      */
     async getTiddlyWikiList(): Promise<string[]> {
         try {
-            // 由于无法直接列目录，我们需要维护一个文件列表
-            // 先尝试加载文件列表
-            const listPath = `${this.tiddlyWikiDir}/.file-list`;
-            const listData = await this.plugin.loadData(listPath);
+            const listData = await this.plugin.loadData(`${this.tiddlyWikiDir}/.file-list`);
+            if (!listData) return [];
             
-            if (listData) {
-                try {
-                    console.log(this.plugin.i18n.readFileListData + ":", listData, "Type:", typeof listData);
-                    
-                    let fileList: string[];
-                    
-                    // 如果数据已经是数组，直接使用
-                    if (Array.isArray(listData)) {
-                        console.log(this.plugin.i18n.dataAlreadyArray);
-                        fileList = listData;
-                    } else if (typeof listData === "string") {
-                        // 如果是字符串，尝试解析JSON
-                        if (!listData || listData.trim() === "") {
-                            console.log(this.plugin.i18n.fileListDataEmpty);
-                            return [];
-                        }
-                        
-                        // 处理可能的单引号格式（JavaScript数组格式）
-                        let jsonString = listData;
-                        if (jsonString.includes("'")) {
-                            console.log(this.plugin.i18n.detectSingleQuote);
-                            jsonString = jsonString.replace(/'/g, '"');
-                        }
-                        
-                        fileList = JSON.parse(jsonString);
-                    } else {
-                        console.warn(this.plugin.i18n.unknownDataFormat);
-                        const jsonString = String(listData).replace(/'/g, '"');
-                        fileList = JSON.parse(jsonString);
-                    }
-                    
-                    // 确保解析出的是数组
-                    if (!Array.isArray(fileList)) {
-                        console.warn(this.plugin.i18n.parseResultNotArray);
-                        await this.updateFileList([]);
-                        return [];
-                    }
-                    
-                    // 验证文件是否还存在
-                    const validFiles = [];
-                    for (const fileName of fileList) {
-                        if (typeof fileName === "string" && fileName.trim()) {
-                            const exists = await this.tiddlyWikiExists(fileName);
-                            if (exists) {
-                                validFiles.push(fileName);
-                            }
-                        }
-                    }
-                    
-                    console.log(this.plugin.i18n.validFileList + ":", validFiles);
-                    
-                    // 更新文件列表
-                    if (validFiles.length !== fileList.length) {
-                        await this.updateFileList(validFiles);
-                    }
-                    
-                    return validFiles;
-                } catch (parseError) {
-                    console.error(this.plugin.i18n.parseFileListFailed + ":", parseError, "Data:", listData);
-                    // 重置文件列表
-                    await this.updateFileList([]);
-                    return [];
+            let fileList: string[];
+            if (Array.isArray(listData)) {
+                fileList = listData;
+            } else if (typeof listData === "string") {
+                if (!listData.trim()) return [];
+                const jsonString = listData.includes("'") ? listData.replace(/'/g, '"') : listData;
+                fileList = JSON.parse(jsonString);
+            } else {
+                fileList = JSON.parse(String(listData).replace(/'/g, '"'));
+            }
+            
+            if (!Array.isArray(fileList)) {
+                await this.updateFileList([]);
+                return [];
+            }
+            
+            const validFiles = [];
+            for (const fileName of fileList) {
+                if (typeof fileName === "string" && fileName.trim() && await this.tiddlyWikiExists(fileName)) {
+                    validFiles.push(fileName);
                 }
             }
             
-            return [];
+            if (validFiles.length !== fileList.length) {
+                await this.updateFileList(validFiles);
+            }
+            
+            return validFiles;
         } catch (error) {
             console.error(this.plugin.i18n.getTiddlyWikiListError + ":", error);
             return [];
@@ -444,10 +346,7 @@ export class FileManager {
      */
     private async updateFileList(fileList: string[]) {
         try {
-            const listPath = `${this.tiddlyWikiDir}/.file-list`;
-            console.log(this.plugin.i18n.saveFileList + ":", fileList);
-            // 直接保存数组，让思源API处理序列化
-            await this.plugin.saveData(listPath, fileList);
+            await this.plugin.saveData(`${this.tiddlyWikiDir}/.file-list`, fileList);
         } catch (error) {
             console.error(this.plugin.i18n.updateFileListError + ":", error);
         }
@@ -488,7 +387,7 @@ export class FileManager {
             // 更新文件列表
             const currentList = await this.getTiddlyWikiList();
             const updatedList = currentList.filter(name => name !== oldName);
-            if (!updatedList.indexOf(newName)) {
+            if (!updatedList.includes(newName)) {
                 updatedList.push(newName);
             }
             await this.updateFileList(updatedList);

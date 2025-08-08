@@ -28,20 +28,18 @@ export class tab {
      * 销毁模块，释放资源
      */
     destroy() {
-        // 清理所有保存拦截器
-        console.log("清理所有保存拦截器");
+        console.log("Cleanup all save interceptors");
         this.saveInterceptors.forEach((interceptor, tabId) => {
             try {
-                console.log(`销毁保存拦截器: ${tabId}`);
+                console.log(`Destroying save interceptor: ${tabId}`);
                 interceptor.destroy();
             } catch (error) {
-                console.error(`销毁拦截器 ${tabId} 时出错:`, error);
+                console.error(`Destroy interceptor ${tabId} error:`, error);
             }
         });
         this.saveInterceptors.clear();
         
-        // 清理资源
-        console.log("标签页模块已销毁");
+        console.log("Tab module destroyed");
     }
     
     /**
@@ -53,27 +51,16 @@ export class tab {
             this.customTab = this.plugin.addTab({
                 type: this.tabType,
                 init() {
-                    console.log("初始化TiddlyWiki标签页");
-                    // 检查是否有传入的TiddlyWiki文件名
+                    console.log("Initialize TiddlyWiki tab");
                     const fileName = this.data?.fileName;
                     if (fileName) {
-                        console.log("检测到文件名:", fileName);
-                        // 这里不能直接调用renderTiddlyWiki，因为this上下文不对
-                        this.element.innerHTML = `<div class="tiddlywiki-loading">正在加载 ${fileName}...</div>`;
+                        this.element.innerHTML = `<div class="tiddlywiki-loading">Loading ${fileName}...</div>`;
                     } else {
-                        this.element.innerHTML = `<div class="tiddlywiki-tab-placeholder" style="
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            height: 100%;
-                            color: #999;
-                            font-size: 14px;
-                        ">
+                        this.element.innerHTML = `<div class="tiddlywiki-tab-placeholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #999; font-size: 14px;">
                             <svg style="width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5;">
                                 <use xlink:href="#iconTiddlyWiki"></use>
                             </svg>
-                            <div>选择一个TiddlyWiki文件来打开</div>
+                            <div>Select a TiddlyWiki file to open</div>
                         </div>`;
                     }
                 },

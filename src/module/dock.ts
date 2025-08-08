@@ -127,11 +127,8 @@ export class dock {
      * 处理添加TiddlyWiki项目
      */
     private async handleAddTiddlyWikiItem() {
-        // 获取可用模板列表
         const templates = await this.fileManager.getTemplates();
-        const templateOptions = templates.map(template => 
-            `<option value="${template}">${template}</option>`
-        ).join("");
+        const templateOptions = templates.map(t => `<option value="${t}">${t}</option>`).join("");
 
         const dialog = new Dialog({
             title: this.plugin.i18n.createNew,
@@ -142,9 +139,7 @@ export class dock {
     </div>
     <div class="b3-form__row">
         <label class="b3-form__label">${this.plugin.i18n.template}</label>
-        <select class="b3-select fn__block" id="tiddlyWikiTemplate">
-            ${templateOptions}
-        </select>
+        <select class="b3-select fn__block" id="tiddlyWikiTemplate">${templateOptions}</select>
     </div>
 </div>
 <div class="b3-dialog__action">
@@ -156,49 +151,33 @@ export class dock {
         
         const nameInput = dialog.element.querySelector("#tiddlyWikiItemName") as HTMLInputElement;
         const templateSelect = dialog.element.querySelector("#tiddlyWikiTemplate") as HTMLSelectElement;
-        const btnsElement = dialog.element.querySelectorAll(".b3-button");
+        const buttons = dialog.element.querySelectorAll(".b3-button");
         
-        // 延迟聚焦，避免干扰下拉栏
-        setTimeout(() => {
-            nameInput.focus();
-        }, 100);
+        setTimeout(() => nameInput.focus(), 100);
         
-        // 阻止模板下拉栏的事件冒泡，避免Dialog关闭
-        templateSelect.addEventListener("mousedown", (e) => {
-            e.stopPropagation();
-        });
+        templateSelect.addEventListener("mousedown", e => e.stopPropagation());
+        templateSelect.addEventListener("click", e => e.stopPropagation());
         
-        templateSelect.addEventListener("click", (e) => {
-            e.stopPropagation();
-        });
+        buttons[0].addEventListener("click", () => dialog.destroy());
         
-        // 取消按钮
-        btnsElement[0].addEventListener("click", () => {
-            dialog.destroy();
-        });
-        
-        // 创建按钮
-        btnsElement[1].addEventListener("click", async () => {
+        const createHandler = async () => {
             const name = nameInput.value.trim();
-            const template = templateSelect.value;
-            
-            if (name) {
-                const success = await this.fileManager.createTiddlyWiki(name, template);
-                if (success) {
-                    this.refreshTiddlyWikiList();
-                    dialog.destroy();
-                }
-            } else {
+            if (!name) {
                 showMessage(this.plugin.i18n.enterTiddlyWikiName);
                 nameInput.focus();
+                return;
             }
-        });
-
-        // 回车键确认
-        nameInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                (btnsElement[1] as HTMLButtonElement).click();
+            
+            const success = await this.fileManager.createTiddlyWiki(name, templateSelect.value);
+            if (success) {
+                this.refreshTiddlyWikiList();
+                dialog.destroy();
             }
+        };
+        
+        buttons[1].addEventListener("click", createHandler);
+        nameInput.addEventListener("keydown", e => {
+            if (e.key === "Enter") createHandler();
         });
     }
 
@@ -216,41 +195,26 @@ export class dock {
     private async refreshTiddlyWikiList() {
         if (!this.dockElement) return;
 
+        const container = this.dockElement.querySelector(".tiddlywiki-list-container");
+        if (!container) return;
+
+        container.innerHTML = `<div class="tiddlywiki-loading" style="text-align: center; padding: 20px; color: #999;">${this.plugin.i18n.loading}</div>`;
+
         try {
-            const tiddlyWikiFiles = await this.fileManager.getTiddlyWikiList();
+            const files = await this.fileManager.getTiddlyWikiList();
             
-            // 统一的列表更新逻辑
-            const container = this.dockElement.querySelector(".tiddlywiki-list-container");
-            if (!container) return;
-
-            // 显示加载状态
-            container.innerHTML = `<div class="tiddlywiki-loading" style="text-align: center; padding: 20px; color: #999;">${this.plugin.i18n.loading}</div>`;
-
-            if (tiddlyWikiFiles.length === 0) {
-                container.innerHTML = `<div class="tiddlywiki-empty" style="text-align: center; padding: 20px; color: #999;">${this.plugin.i18n.noTiddlyWikiFiles}<br><small>点击上方 + 按钮创建</small></div>`;
+            if (files.length === 0) {
+                container.innerHTML = `<div class="tiddlywiki-empty" style="text-align: center; padding: 20px; color: #999;">${this.plugin.i18n.noTiddlyWikiFiles}<br><small>${this.plugin.i18n.createNew}</small></div>`;
                 return;
             }
 
-            // 创建文件列表HTML
-            let listHTML = "";
-            for (const fileName of tiddlyWikiFiles) {
-                listHTML += this.createFileItemHTML(fileName);
-            }
-
+            const listHTML = files.map(file => this.createFileItemHTML(file)).join("");
             container.innerHTML = `<div class="tiddlywiki-file-list">${listHTML}</div>`;
-            
-            // 绑定文件项事件
             this.bindFileItemEvents(container);
             
-            console.log(`刷新TiddlyWiki列表完成，共 ${tiddlyWikiFiles.length} 个文件`);
         } catch (error) {
-            console.error("刷新TiddlyWiki列表失败:", error);
-            
-            // 统一的错误处理
-            const container = this.dockElement?.querySelector(".tiddlywiki-list-container");
-            if (container) {
-                container.innerHTML = `<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">${this.plugin.i18n.loadFailedError}</div>`;
-            }
+            console.error(this.plugin.i18n.refreshFileList + ":", error);
+            container.innerHTML = `<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">${this.plugin.i18n.loadFailedError}</div>`;
         }
     }
 
@@ -308,51 +272,33 @@ export class dock {
      * 绑定文件项事件
      */
     private bindFileItemEvents(container: Element) {
-        const fileItems = container.querySelectorAll(".tiddlywiki-file-item");
-        
-        fileItems.forEach(item => {
+        container.querySelectorAll(".tiddlywiki-file-item").forEach(item => {
             const fileName = item.getAttribute("data-filename");
             if (!fileName) return;
 
-            // 点击文件名打开文件
             const fileNameSpan = item.querySelector(".file-name");
-            if (fileNameSpan) {
-                fileNameSpan.addEventListener("click", () => {
-                    this.openTiddlyWiki(fileName);
-                });
-            }
+            fileNameSpan?.addEventListener("click", () => this.openTiddlyWiki(fileName));
 
-            // 重命名按钮
-            const renameBtn = item.querySelector('[data-action="rename"]');
-            if (renameBtn) {
-                renameBtn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    this.renameTiddlyWiki(fileName);
-                });
-            }
+            item.querySelector('[data-action="rename"]')?.addEventListener("click", (e) => {
+                e.stopPropagation();
+                this.renameTiddlyWiki(fileName);
+            });
 
-            // 删除按钮
-            const deleteBtn = item.querySelector('[data-action="delete"]');
-            if (deleteBtn) {
-                deleteBtn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    this.deleteTiddlyWiki(fileName);
-                });
-            }
+            item.querySelector('[data-action="delete"]')?.addEventListener("click", (e) => {
+                e.stopPropagation();
+                this.deleteTiddlyWiki(fileName);
+            });
 
-            // 悬停效果
             item.addEventListener("mouseenter", () => {
                 (item as HTMLElement).style.background = "var(--b3-list-hover)";
-                const actions = item.querySelectorAll(".file-action") as NodeListOf<HTMLElement>;
-                actions.forEach(action => {
+                item.querySelectorAll(".file-action").forEach((action: HTMLElement) => {
                     action.style.opacity = "1";
                 });
             });
 
             item.addEventListener("mouseleave", () => {
                 (item as HTMLElement).style.background = "var(--b3-theme-background)";
-                const actions = item.querySelectorAll(".file-action") as NodeListOf<HTMLElement>;
-                actions.forEach(action => {
+                item.querySelectorAll(".file-action").forEach((action: HTMLElement) => {
                     action.style.opacity = "0.7";
                 });
             });
@@ -515,7 +461,7 @@ export class dock {
                                 }
                             </style>
                         </div>
-                        <div>正在加载 TiddlyWiki...</div>
+                        <div>${this.plugin.i18n.loadingTiddlyWiki}</div>
                     </div>
                 </div>
             `;
@@ -545,12 +491,12 @@ export class dock {
                                     <use xlink:href="#iconTiddlyWiki"></use>
                                 </svg>
                             </div>
-                            <div style="margin-bottom: 12px;">加载超时</div>
+                            <div style="margin-bottom: 12px;">${this.plugin.i18n.loadTimeout}</div>
                             <div style="font-size: 12px; color: #999; margin-bottom: 16px;">
-                                TiddlyWiki可能过大或存在兼容性问题
+                                ${this.plugin.i18n.loadTimeoutDesc}
                             </div>
                             <button class="retry-btn b3-button b3-button--outline" style="font-size: 12px; padding: 6px 12px;">
-                                重试
+                                ${this.plugin.i18n.retry}
                             </button>
                         </div>
                     `;
@@ -604,10 +550,10 @@ export class dock {
                                     <use xlink:href="#iconTiddlyWiki"></use>
                                 </svg>
                             </div>
-                            <div style="margin-bottom: 12px;">加载失败</div>
+                            <div style="margin-bottom: 12px;">${this.plugin.i18n.loadFailedError}</div>
                             <div style="font-size: 12px; color: #999;">
-                                无法加载 ${fileName}<br>
-                                可能是文件损坏或不兼容
+                                ${this.plugin.i18n.cannotLoadFile} ${fileName}<br>
+                                ${this.plugin.i18n.fileCorruptedOrIncompatible}
                             </div>
                         </div>
                     `;
@@ -631,8 +577,8 @@ export class dock {
                         text-align: center;
                     ">
                         <div>
-                            <div>❌ 创建失败</div>
-                            <div style="font-size: 12px; margin-top: 8px;">内容处理错误</div>
+                            <div>❌ ${this.plugin.i18n.createFailedError}</div>
+                            <div style="font-size: 12px; margin-top: 8px;">${this.plugin.i18n.contentProcessingError}</div>
                         </div>
                     </div>
                 `;
@@ -640,7 +586,7 @@ export class dock {
 
         } catch (error) {
             console.error("打开弹出窗口失败:", error);
-            showMessage("打开TiddlyWiki失败");
+            showMessage(this.plugin.i18n.openPopupFailed);
         }
     }
 
@@ -651,16 +597,16 @@ export class dock {
         const currentName = fileName.replace(".html", "");
         
         const dialog = new Dialog({
-            title: "重命名 TiddlyWiki",
+            title: this.plugin.i18n.rename + " TiddlyWiki",
             content: `<div class="b3-dialog__content">
     <div class="b3-form__row">
-        <label class="b3-form__label">新名称</label>
-        <input class="b3-text-field fn__block" placeholder="输入新名称" id="newTiddlyWikiName" value="${currentName}">
+        <label class="b3-form__label">${this.plugin.i18n.newName}</label>
+        <input class="b3-text-field fn__block" placeholder="${this.plugin.i18n.enterNewName}" id="newTiddlyWikiName" value="${currentName}">
     </div>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">重命名</button>
+    <button class="b3-button b3-button--cancel">${this.plugin.i18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${this.plugin.i18n.rename}</button>
 </div>`,
             width: this.isMobile ? "92vw" : "420px",
         });
@@ -687,7 +633,7 @@ export class dock {
                     dialog.destroy();
                 }
             } else if (!newName) {
-                showMessage("请输入新名称");
+                showMessage(this.plugin.i18n.enterNewName);
                 nameInput.focus();
             } else {
                 dialog.destroy();
@@ -707,8 +653,8 @@ export class dock {
      */
     private deleteTiddlyWiki(fileName: string) {
         confirm(
-            "删除确认",
-            `确定要删除 "${fileName}" 吗？此操作不可恢复。`,
+            this.plugin.i18n.delete,
+            this.plugin.i18n.deleteConfirm.replace("{fileName}", fileName),
             async () => {
                 const success = await this.fileManager.deleteTiddlyWiki(fileName);
                 if (success) {
