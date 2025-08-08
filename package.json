@@ -1,7 +1,7 @@
 {
   "name": "siyuan-tiddlywiki-client",
   "version": "0.4.1",
-  "description": "This is a sample plugin for Siyuan (https://b3log.org/siyuan)",
+  "description": "Manage and edit TiddlyWiki files directly in SiYuan with save functionality",
   "main": ".src/index.js",
   "scripts": {
     "lint": "eslint . --fix --cache",
@@ -9,7 +9,7 @@
     "build": "webpack --mode production"
   },
   "keywords": [],
-  "author": "Vanessa",
+  "author": "ACai",
   "license": "MIT",
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.29.0",

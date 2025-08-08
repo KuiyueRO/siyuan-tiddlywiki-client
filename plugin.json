@@ -27,7 +27,6 @@
   "description": {
     "default": "Manage and edit TiddlyWiki files directly in SiYuan with save functionality",
     "zh_CN": "在思源笔记中直接管理和编辑 TiddlyWiki 文件，支持保存功能",
-    "en_US": "Manage and edit TiddlyWiki files directly in SiYuan with save functionality",
     "ja_JP": "SiYuan で TiddlyWiki ファイルを直接管理・編集し、保存機能を提供",
     "de_DE": "TiddlyWiki-Dateien direkt in SiYuan verwalten und bearbeiten mit Speicherfunktion",
     "fr_FR": "Gérer et éditer des fichiers TiddlyWiki directement dans SiYuan avec fonctionnalité de sauvegarde",
@@ -42,7 +41,18 @@
   },
   "readme": {
     "default": "README.md",
-    "zh_CN": "README_zh_CN.md"
+    "zh_CN": "README_zh_CN.md",
+    "ja_JP": "README_ja_JP.md",
+    "de_DE": "README_de_DE.md",
+    "fr_FR": "README_fr_FR.md",
+    "es_ES": "README_es_ES.md",
+    "it_IT": "README_it_IT.md",
+    "pt_BR": "README_pt_BR.md",
+    "ru_RU": "README_ru_RU.md",
+    "zh_CHT": "README_zh_CHT.md",
+    "ar_SA": "README_ar_SA.md",
+    "he_IL": "README_he_IL.md",
+    "pl_PL": "README_pl_PL.md"
   },
   "funding": {
     "openCollective": "",
