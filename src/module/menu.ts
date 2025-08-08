@@ -36,7 +36,7 @@ export class menu {
         }
         
         // 清理事件绑定和资源
-        console.log("菜单模块已销毁");
+        console.log(this.plugin.i18n.menuModuleDestroyed);
     }
     
     /**
@@ -144,7 +144,7 @@ export class menu {
     private enhanceMenuItemWithActions(menuItemElement: HTMLElement, displayName: string, fileName: string) {
         // 检查menuItemElement是否存在
         if (!menuItemElement) {
-            console.warn("菜单项元素不存在");
+            console.warn(this.plugin.i18n.menuItemElementNotFound);
             return;
         }
 
@@ -154,7 +154,7 @@ export class menu {
             const actualMenuItem = menuItemElement.closest(".b3-menu__item") || menuItemElement;
             
             if (!actualMenuItem) {
-                console.warn("无法找到菜单项元素");
+                console.warn(this.plugin.i18n.cannotFindMenuItem);
                 return;
             }
 

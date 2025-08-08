@@ -187,12 +187,12 @@ export class tab {
                 ">
                     <div style="text-align: center;">
                         <div style="margin-bottom: 10px;">🔄</div>
-                        <div>正在加载 TiddlyWiki: ${fileName}...</div>
+                        <div>${plugin.i18n.loadingTiddlyWiki.replace('TiddlyWiki', fileName)}</div>
                     </div>
                 </div>
             `;
             
-            console.log("标签页加载状态已设置");
+            console.log(plugin.i18n.tabLoadingStateSet);
             
             // 延迟渲染内容，确保标签页完全初始化
             // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -255,8 +255,8 @@ export class tab {
                                 text-align: center;
                             ">
                                 <div>
-                                    <div>❌ 加载失败</div>
-                                    <div style="font-size: 12px; margin-top: 8px;">无法加载 ${fileName}</div>
+                                    <div>❌ ${plugin.i18n.loadingFailed}</div>
+                                    <div style="font-size: 12px; margin-top: 8px;">${plugin.i18n.cannotLoadFile2} ${fileName}</div>
                                 </div>
                             </div>
                         `;
@@ -277,7 +277,7 @@ export class tab {
                             text-align: center;
                         ">
                             <div>
-                                <div>❌ 渲染失败</div>
+                                <div>❌ ${plugin.i18n.renderFailed}</div>
                                 <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
                             </div>
                         </div>

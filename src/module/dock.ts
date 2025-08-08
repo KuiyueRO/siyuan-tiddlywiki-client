@@ -521,7 +521,7 @@ export class dock {
                     
                     // 只在首次加载时清理加载提示
                     const loadingDiv = contentArea.querySelector("div");
-                    if (loadingDiv && loadingDiv.textContent.includes("正在加载")) {
+                    if (loadingDiv && loadingDiv.textContent.includes(this.plugin.i18n.loadingInProgress)) {
                         loadingDiv.remove();
                     }
                     

@@ -141,5 +141,13 @@
   "cleanupSaveInterceptor": "Cleanup save interceptor",
   "cleanupInterceptorError": "Error cleaning up interceptor",
   "saveInterceptorDestroyed": "Save interceptor destroyed",
-  "name": "Name"
+  "name": "Name",
+  "menuModuleDestroyed": "Menu module destroyed",
+  "menuItemElementNotFound": "Menu item element not found",
+  "cannotFindMenuItem": "Cannot find menu item element",
+  "tabLoadingStateSet": "Tab loading state set",
+  "loadingInProgress": "Loading",
+  "loadingFailed": "Loading failed",
+  "cannotLoadFile2": "Cannot load",
+  "renderFailed": "Render failed"
 }

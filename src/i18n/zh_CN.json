@@ -141,5 +141,13 @@
   "cleanupSaveInterceptor": "清理保存拦截器",
   "cleanupInterceptorError": "清理拦截器时出错",
   "saveInterceptorDestroyed": "保存拦截器已销毁",
-  "name": "名称"
+  "name": "名称",
+  "menuModuleDestroyed": "菜单模块已销毁",
+  "menuItemElementNotFound": "菜单项元素不存在",
+  "cannotFindMenuItem": "无法找到菜单项元素",
+  "tabLoadingStateSet": "标签页加载状态已设置",
+  "loadingInProgress": "正在加载",
+  "loadingFailed": "加载失败",
+  "cannotLoadFile2": "无法加载",
+  "renderFailed": "渲染失败"
 }
