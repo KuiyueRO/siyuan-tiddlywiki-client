@@ -1,8 +1,8 @@
 {
   "name": "siyuan-tiddlywiki-client",
   "author": "ACai",
-  "url": "https://github.com/siyuan-note/plugin-sample",
-  "version": "0.4.1",
+  "url": "https://github.com/ACai-QY/siyuan-tiddlywiki-client",
+  "version": "1.0.0",
   "minAppVersion": "3.2.1",
   "backends": [
     "windows",
@@ -21,12 +21,24 @@
     "desktop-window"
   ],
   "displayName": {
-    "default": "Tiddlywiki",
-    "zh_CN": "Tiddlywiki"
+    "default": "TiddlyWiki(Aplha)",
+    "zh_CN": "TiddlyWiki(Aplha)"
   },
   "description": {
-    "default": "This is a plugin sample",
-    "zh_CN": "这是一个插件示例"
+    "default": "Manage and edit TiddlyWiki files directly in SiYuan with save functionality",
+    "zh_CN": "在思源笔记中直接管理和编辑 TiddlyWiki 文件，支持保存功能",
+    "en_US": "Manage and edit TiddlyWiki files directly in SiYuan with save functionality",
+    "ja_JP": "SiYuan で TiddlyWiki ファイルを直接管理・編集し、保存機能を提供",
+    "de_DE": "TiddlyWiki-Dateien direkt in SiYuan verwalten und bearbeiten mit Speicherfunktion",
+    "fr_FR": "Gérer et éditer des fichiers TiddlyWiki directement dans SiYuan avec fonctionnalité de sauvegarde",
+    "es_ES": "Gestionar y editar archivos TiddlyWiki directamente en SiYuan con funcionalidad de guardado",
+    "it_IT": "Gestire e modificare file TiddlyWiki direttamente in SiYuan con funzionalità di salvataggio",
+    "pt_BR": "Gerenciar e editar arquivos TiddlyWiki diretamente no SiYuan com funcionalidade de salvamento",
+    "ru_RU": "Управление и редактирование файлов TiddlyWiki напрямую в SiYuan с функцией сохранения",
+    "zh_CHT": "在思源筆記中直接管理和編輯 TiddlyWiki 檔案，支援儲存功能",
+    "ar_SA": "إدارة وتحرير ملفات TiddlyWiki مباشرة في SiYuan مع وظيفة الحفظ",
+    "he_IL": "נהל וערוך קבצי TiddlyWiki ישירות ב-SiYuan עם פונקציית שמירה",
+    "pl_PL": "Zarządzaj i edytuj pliki TiddlyWiki bezpośrednio w SiYuan z funkcją zapisywania"
   },
   "readme": {
     "default": "README.md",
@@ -36,12 +48,14 @@
     "openCollective": "",
     "patreon": "",
     "github": "",
-    "custom": [
-      "https://ld246.com/sponsor"
-    ]
+    "custom": []
   },
   "keywords": [
-    "sample",
-    "示例"
+    "tiddlywiki",
+    "wiki",
+    "editor",
+    "client",
+    "文档编辑",
+    "知识管理"
   ]
 }
