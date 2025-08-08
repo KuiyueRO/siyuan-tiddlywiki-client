@@ -98,25 +98,30 @@ jobs:
           
           # 从CHANGELOG.md中提取对应版本的更新日志
           if [ -f "CHANGELOG.md" ]; then
-            # 查找版本标题行和下一个版本标题行之间的内容
+            # 查找版本标题行和下一个版本标题行之间的内容 (支持 v1.0.0 格式)
             CHANGELOG_CONTENT=$(awk "
-              /^## \[$VERSION\]/ { found=1; next }
-              /^## \[/ && found { exit }
-              found && !/^## \[$VERSION\]/ { print }
-            " CHANGELOG.md | sed '/^$/d' | head -n 20)
+              /^## v$VERSION/ { found=1; next }
+              /^## v/ && found { exit }
+              found && !/^## v$VERSION/ { print }
+            " CHANGELOG.md | sed '/^$/d')
             
             if [ -n "$CHANGELOG_CONTENT" ]; then
               echo "Found changelog for version $VERSION"
-              # 将换行符替换为 \n 以便在GitHub Actions中传递
-              CHANGELOG_ESCAPED=$(echo "$CHANGELOG_CONTENT" | sed ':a;N;$!ba;s/\n/\\n/g')
-              echo "changelog=$CHANGELOG_ESCAPED" >> $GITHUB_OUTPUT
+              # 转换为多行输出格式
+              echo "changelog<<EOF" >> $GITHUB_OUTPUT
+              echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
             else
               echo "No changelog found for version $VERSION"
-              echo "changelog=Release version $VERSION" >> $GITHUB_OUTPUT
+              echo "changelog<<EOF" >> $GITHUB_OUTPUT
+              echo "Release version $VERSION" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
             fi
           else
             echo "No CHANGELOG.md found"
-            echo "changelog=Release version $VERSION" >> $GITHUB_OUTPUT
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            echo "Release version $VERSION" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Create Release
@@ -126,26 +131,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ needs.check-version.outputs.new-version }}
-          release_name: Release v${{ needs.check-version.outputs.new-version }}
+          release_name: v${{ needs.check-version.outputs.new-version }}
           body: |
-            ## 🎉 SiYuan TiddlyWiki Client v${{ needs.check-version.outputs.new-version }}
-            
             ${{ steps.changelog.outputs.changelog }}
-            
-            ---
-            
-            ### 📦 安装方法 / Installation
-            1. 下载 `package.zip` 文件
-            2. 在思源笔记中打开 `设置` → `集市` → `插件` → `从本地安装`
-            3. 选择下载的 `package.zip` 文件进行安装
-            
-            ### 🔄 更新方法 / Update
-            1. 如果已安装旧版本，请先在插件设置中禁用并删除旧版本
-            2. 按照安装方法重新安装新版本
-            
-            ### 📋 兼容性 / Compatibility
-            - 最低思源笔记版本: v3.2.1+
-            - 支持平台: Windows, Linux, macOS, iOS, Android, Docker
           draft: false
           prerelease: false
 
