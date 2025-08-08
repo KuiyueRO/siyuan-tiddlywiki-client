@@ -549,6 +549,21 @@ export class FileManager {
     }
 
     /**
+     * 保存TiddlyWiki文件内容
+     */
+    async saveTiddlyWiki(name: string, content: string): Promise<boolean> {
+        try {
+            const filePath = `${this.tiddlyWikiDir}/${name}`;
+            await this.plugin.saveData(filePath, content);
+            console.log(`TiddlyWiki文件已保存: ${filePath}`);
+            return true;
+        } catch (error) {
+            console.error("保存TiddlyWiki时出错:", error);
+            return false;
+        }
+    }
+
+    /**
      * 获取TiddlyWiki文件的完整路径
      */
     getTiddlyWikiPath(name: string): string {

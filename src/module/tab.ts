@@ -5,6 +5,7 @@ import {
 } from "siyuan";
 import { ExtendedPlugin } from "./types";
 import { FileManager } from "./file-manager";
+import { SaveInterceptor } from "./save-interceptor";
 
 /**
  * 标签页模块
@@ -15,6 +16,7 @@ export class tab {
     private tabType: string;
     private customTab: () => Custom;
     private fileManager: FileManager;
+    private saveInterceptors: Map<string, SaveInterceptor> = new Map();
     
     constructor(plugin: Plugin, tabType: string) {
         this.plugin = plugin as ExtendedPlugin;
@@ -26,6 +28,18 @@ export class tab {
      * 销毁模块，释放资源
      */
     destroy() {
+        // 清理所有保存拦截器
+        console.log("清理所有保存拦截器");
+        this.saveInterceptors.forEach((interceptor, tabId) => {
+            try {
+                console.log(`销毁保存拦截器: ${tabId}`);
+                interceptor.destroy();
+            } catch (error) {
+                console.error(`销毁拦截器 ${tabId} 时出错:`, error);
+            }
+        });
+        this.saveInterceptors.clear();
+        
         // 清理资源
         console.log("标签页模块已销毁");
     }
@@ -109,6 +123,10 @@ export class tab {
             
             console.log('创建的标签页类型:', tabType);
             
+            // 保存当前实例的引用，以便在闭包中使用
+            const tabInstance = this;
+            const pluginInstance = this.plugin;
+
             // 1. 注册标签页类型
             this.plugin.addTab({
                 type: tabType,
@@ -175,6 +193,24 @@ export class tab {
                             
                             iframe.onload = () => {
                                 console.log("TiddlyWiki iframe 加载完成");
+                                
+                                // 设置保存拦截器
+                                try {
+                                    const interceptor = new SaveInterceptor(pluginInstance);
+                                    interceptor.setupSaveInterception(iframe, fileName);
+                                    
+                                    // 存储拦截器以便后续清理
+                                    const interceptorId = Math.random().toString(36).substring(7);
+                                    tabInstance.saveInterceptors.set(interceptorId, interceptor);
+                                    
+                                    // 在iframe上存储interceptorId以便销毁时清理
+                                    (iframe as any).__interceptorId = interceptorId;
+                                    
+                                    console.log(`保存拦截器已设置，interceptorId: ${interceptorId}`);
+                                } catch (interceptorError) {
+                                    console.error("设置保存拦截器失败:", interceptorError);
+                                }
+                                
                                 // 清理blob URL
                                 setTimeout(() => URL.revokeObjectURL(url), 1000);
                             };
@@ -223,6 +259,22 @@ export class tab {
                 },
                 beforeDestroy() {
                     console.log("TiddlyWiki标签页即将销毁");
+                    
+                    // 清理保存拦截器
+                    try {
+                        const iframe = this.element.querySelector('iframe') as HTMLIFrameElement;
+                        if (iframe && (iframe as any).__interceptorId) {
+                            const interceptorId = (iframe as any).__interceptorId;
+                            const interceptor = tabInstance.saveInterceptors.get(interceptorId);
+                            if (interceptor) {
+                                console.log(`清理保存拦截器: ${interceptorId}`);
+                                interceptor.destroy();
+                                tabInstance.saveInterceptors.delete(interceptorId);
+                            }
+                        }
+                    } catch (cleanupError) {
+                        console.error("清理保存拦截器时出错:", cleanupError);
+                    }
                 },
                 destroy() {
                     console.log("TiddlyWiki标签页已销毁");
