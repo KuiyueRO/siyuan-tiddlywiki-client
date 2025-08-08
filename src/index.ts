@@ -178,9 +178,9 @@ export default class PluginSample extends Plugin {
             icon: "iconTiddlyWiki",
             title: this.i18n.addTopBarIcon,
             position: "right",
-            callback: () => {
+            callback: async () => {
                 if (this.isMobile) {
-                    this.menuModule.addTopBarMenu();
+                    await this.menuModule.addTopBarMenu();
                 } else {
                     let rect = topBarElement.getBoundingClientRect();
                     // 如果被隐藏，则使用更多按钮
@@ -190,7 +190,7 @@ export default class PluginSample extends Plugin {
                     if (rect.width === 0) {
                         rect = document.querySelector("#barPlugins").getBoundingClientRect();
                     }
-                    this.menuModule.addTopBarMenu(rect);
+                    await this.menuModule.addTopBarMenu(rect);
                 }
             }
         });
