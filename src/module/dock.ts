@@ -158,7 +158,19 @@ export class dock {
         const templateSelect = dialog.element.querySelector("#tiddlyWikiTemplate") as HTMLSelectElement;
         const btnsElement = dialog.element.querySelectorAll(".b3-button");
         
-        nameInput.focus();
+        // 延迟聚焦，避免干扰下拉栏
+        setTimeout(() => {
+            nameInput.focus();
+        }, 100);
+        
+        // 阻止模板下拉栏的事件冒泡，避免Dialog关闭
+        templateSelect.addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+        });
+        
+        templateSelect.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
         
         // 取消按钮
         btnsElement[0].addEventListener("click", () => {

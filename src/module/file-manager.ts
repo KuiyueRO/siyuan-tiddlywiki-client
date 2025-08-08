@@ -236,49 +236,39 @@ export class FileManager {
             // 先确保template目录存在
             await this.ensureTemplateExists();
             
-            // 动态读取template目录中的所有.html文件
+            // 由于思源API可能没有readDir功能，我们使用更直接的方法
+            // 尝试读取常见的模板文件名
+            const knownTemplates = [
+                "empty.html",
+                "tiddlywiki.html", 
+                "basic.html",
+                "default.html",
+                "template.html",
+                "wiki.html"
+            ];
+            
             const templates: string[] = [];
             
-            // 尝试读取template目录
-            try {
-                // 使用思源API读取目录内容
-                const response = await fetch("/api/file/readDir", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        path: this.templateDir
-                    })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.code === 0 && result.data) {
-                        // 过滤出.html文件
-                        for (const file of result.data) {
-                            if (file.name.endsWith(".html")) {
-                                templates.push(file.name);
-                            }
-                        }
+            // 逐一检查已知模板文件是否存在
+            for (const templateName of knownTemplates) {
+                try {
+                    const templatePath = `${this.templateDir}/${templateName}`;
+                    const data = await this.plugin.loadData(templatePath);
+                    if (data) {
+                        templates.push(templateName);
+                        console.log(`找到模板文件: ${templateName}`);
                     }
+                } catch (error) {
+                    // 文件不存在，继续检查下一个
+                    continue;
                 }
-            } catch (apiError) {
-                console.warn("API读取目录失败，尝试fallback:", apiError);
             }
             
-            // 如果没有找到模板，确保至少有empty.html
+            // 如果没有找到任何模板，确保至少有empty.html
             if (templates.length === 0) {
-                const emptyHtmlPath = `${this.templateDir}/empty.html`;
-                const existingData = await this.plugin.loadData(emptyHtmlPath);
-                
-                if (existingData) {
-                    templates.push("empty.html");
-                } else {
-                    console.warn("Template file not exists, retrying copy");
-                    await this.copyEmptyHtmlTemplate();
-                    templates.push("empty.html");
-                }
+                console.warn("未找到任何模板文件，创建默认模板");
+                await this.copyEmptyHtmlTemplate();
+                templates.push("empty.html");
             }
             
             console.log(this.plugin.i18n.foundTemplateFiles + ":", templates);
