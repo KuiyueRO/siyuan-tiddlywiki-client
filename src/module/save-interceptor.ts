@@ -135,6 +135,7 @@ export class SaveInterceptor {
         // 保存原始方法
         const originalCreateObjectURL = win.URL.createObjectURL;
         const blobCache = new Map<string, Blob>();
+        const plugin = this.plugin; // 保存 plugin 引用
 
         // 重写 createObjectURL 方法
         win.URL.createObjectURL = function(object: Blob | MediaSource) {
@@ -142,7 +143,7 @@ export class SaveInterceptor {
             
             // 如果是 Blob 对象，缓存它
             if (object instanceof Blob) {
-                console.log(this.plugin.i18n.cacheBlobUrl + ':', url, 'Type:', object.type);
+                console.log(plugin.i18n.cacheBlobUrl + ':', url, 'Type:', object.type);
                 blobCache.set(url, object);
             }
             
@@ -204,30 +205,31 @@ export class SaveInterceptor {
         console.log(this.plugin.i18n.setupDynamicDownloadInterception);
 
         const originalCreateElement = win.document.createElement;
+        const plugin = this.plugin; // 保存 plugin 引用
         
         win.document.createElement = function(tagName: string, options?: ElementCreationOptions) {
             const element = originalCreateElement.call(win.document, tagName, options);
             
-            if (tagName.toLowerCase() === 'a') {
+            if (tagName.toLowerCase() === "a") {
                 const link = element as HTMLAnchorElement;
                 
                 // 重写 click 方法
                 const originalClick = link.click;
                 link.click = function() {
-                    if (this.hasAttribute('download') && this.href) {
-                        console.log(this.plugin.i18n.interceptedDynamicDownloadLink + ':', this.href);
+                    if (this.hasAttribute("download") && this.href) {
+                        console.log(plugin.i18n.interceptedDynamicDownloadLink + ":", this.href);
                         
                         // 阻止默认点击行为
                         // 使用保存拦截器处理
-                        if (this.href.startsWith('blob:') || this.href.startsWith('data:')) {
+                        if (this.href.startsWith("blob:") || this.href.startsWith("data:")) {
                             // 异步处理保存
                             setTimeout(async () => {
                                 try {
                                     let content: string;
-                                    if (this.href.startsWith('data:')) {
+                                    if (this.href.startsWith("data:")) {
                                         // 处理 data URL
                                         const dataUrl = this.href;
-                                        const base64Data = dataUrl.split(',')[1];
+                                        const base64Data = dataUrl.split(",")[1];
                                         content = atob(base64Data);
                                     } else {
                                         // 处理 blob URL
@@ -241,7 +243,7 @@ export class SaveInterceptor {
                                         await interceptor.saveToFile(content);
                                     }
                                 } catch (error) {
-                                    console.error(this.plugin.i18n.processDynamicDownloadFailed + ':', error);
+                                    console.error(plugin.i18n.processDynamicDownloadFailed + ":", error);
                                 }
                             }, 0);
                             

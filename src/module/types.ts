@@ -10,6 +10,7 @@ import { setting } from "./setting";
 import { dock } from "./dock";
 
 export interface ExtendedPlugin extends Plugin {
+    i18n: any; // 添加国际化支持
     isMobile: boolean;
     dialogModule: dialog;
     tabModule: tab;
