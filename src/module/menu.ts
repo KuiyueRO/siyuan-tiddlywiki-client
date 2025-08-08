@@ -85,57 +85,30 @@ export class menu {
             }
         });
 
-        // 获取 TiddlyWiki 文件列表并添加到菜单
+        // 添加分隔符
+        menu.addSeparator();
+
+        // 获取 TiddlyWiki 文件列表并直接添加到主菜单
         try {
             const tiddlyWikiFiles = await this.fileManager.getTiddlyWikiList();
             
             if (tiddlyWikiFiles.length > 0) {
-                // 创建文件列表子菜单
-                const fileListItems: any[] = [];
-                
+                // 直接为每个文件创建菜单项，包含内置的操作按钮
                 for (const fileName of tiddlyWikiFiles) {
                     const displayName = fileName.replace('.html', '');
                     
-                    // 为每个文件创建子菜单，包含打开、重命名、删除选项
-                    const fileSubmenuItems = [
-                        {
-                            icon: "iconTiddlyWiki",
-                            label: this.plugin.i18n.open,
-                            click: () => {
-                                this.openTiddlyWiki(fileName);
-                            }
-                        },
-                        {
-                            icon: "iconEdit",
-                            label: this.plugin.i18n.rename,
-                            click: () => {
-                                this.handleRenameTiddlyWiki(fileName);
-                            }
-                        },
-                        {
-                            icon: "iconTrashcan",
-                            label: this.plugin.i18n.delete,
-                            click: () => {
-                                this.handleDeleteTiddlyWiki(fileName);
-                            }
-                        }
-                    ];
-                    
-                    fileListItems.push({
+                    // 为每个文件创建菜单项，在label中包含操作按钮
+                    const menuItemElement = menu.addItem({
                         icon: "iconTiddlyWiki",
                         label: displayName,
-                        type: "submenu",
-                        submenu: fileSubmenuItems
+                        click: () => {
+                            this.openTiddlyWiki(fileName);
+                        }
                     });
+                    
+                    // 在菜单项创建后修改其HTML结构
+                    this.enhanceMenuItemWithActions(menuItemElement, displayName, fileName);
                 }
-                
-                // 添加文件列表主菜单项
-                menu.addItem({
-                    icon: "iconTiddlyWiki",
-                    label: `${this.plugin.i18n.tiddlyWikiFiles} (${tiddlyWikiFiles.length})`,
-                    type: "submenu",
-                    submenu: fileListItems
-                });
             } else {
                 // 没有文件时显示提示
                 menu.addItem({
@@ -154,11 +127,135 @@ export class menu {
         }
     }
     
+    /**
+     * 增强菜单项，添加操作按钮
+     */
+    private enhanceMenuItemWithActions(menuItemElement: HTMLElement, displayName: string, fileName: string) {
+        // 检查menuItemElement是否存在
+        if (!menuItemElement) {
+            console.warn('菜单项元素不存在');
+            return;
+        }
+
+        // 等待DOM更新后再修改
+        setTimeout(() => {
+            // 查找实际的菜单项元素
+            const actualMenuItem = menuItemElement.closest('.b3-menu__item') || menuItemElement;
+            
+            if (!actualMenuItem) {
+                console.warn('无法找到菜单项元素');
+                return;
+            }
+
+            // 修改菜单项的HTML结构
+            const labelElement = actualMenuItem.querySelector('.b3-menu__label');
+            if (labelElement) {
+                // 保存原有的文本
+                const originalText = labelElement.textContent;
+                
+                // 重新设计菜单项的内部结构
+                labelElement.innerHTML = '';
+                labelElement.style.cssText = 'flex: 1; display: flex; align-items: center; justify-content: space-between; overflow: hidden;';
+                
+                // 创建文件名显示区域
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = originalText;
+                nameSpan.style.cssText = 'flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+                nameSpan.title = fileName;
+                
+                // 创建操作按钮区域
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'file-actions';
+                actionsDiv.style.cssText = 'display: flex; gap: 4px; margin-left: 8px; flex-shrink: 0;';
+                
+                // 重命名按钮
+                const renameBtn = this.createActionButton('iconEdit', this.plugin.i18n.rename, () => {
+                    this.handleRenameTiddlyWiki(fileName);
+                });
+                
+                // 删除按钮
+                const deleteBtn = this.createActionButton('iconTrashcan', this.plugin.i18n.delete, () => {
+                    this.handleDeleteTiddlyWiki(fileName);
+                });
+                
+                actionsDiv.appendChild(renameBtn);
+                actionsDiv.appendChild(deleteBtn);
+                
+                labelElement.appendChild(nameSpan);
+                labelElement.appendChild(actionsDiv);
+                
+                // 绑定悬停效果
+                this.bindHoverEffects(actualMenuItem as HTMLElement, actionsDiv);
+            }
+        }, 0);
+    }
     
+    /**
+     * 创建操作按钮
+     */
+    private createActionButton(iconId: string, tooltip: string, onClick: () => void): HTMLElement {
+        const button = document.createElement('span');
+        button.className = 'file-action b3-tooltips b3-tooltips__sw';
+        button.setAttribute('aria-label', tooltip);
+        button.style.cssText = `
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            opacity: 0.7;
+            transition: opacity 0.2s, background-color 0.2s;
+        `;
+        
+        const svg = document.createElement('svg');
+        svg.style.cssText = 'width: 12px; height: 12px; pointer-events: none;';
+        const use = document.createElement('use');
+        use.setAttribute('xlink:href', `#${iconId}`);
+        svg.appendChild(use);
+        button.appendChild(svg);
+        
+        // 绑定点击事件
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onClick();
+        });
+        
+        return button;
+    }
     
-    
-    
-    
+    /**
+     * 绑定悬停效果
+     */
+    private bindHoverEffects(menuItem: HTMLElement, actionsDiv: HTMLElement) {
+        menuItem.addEventListener('mouseenter', () => {
+            const actions = actionsDiv.querySelectorAll('.file-action') as NodeListOf<HTMLElement>;
+            actions.forEach(action => {
+                action.style.opacity = '1';
+            });
+        });
+
+        menuItem.addEventListener('mouseleave', () => {
+            const actions = actionsDiv.querySelectorAll('.file-action') as NodeListOf<HTMLElement>;
+            actions.forEach(action => {
+                action.style.opacity = '0.7';
+            });
+        });
+        
+        // 为按钮添加悬停效果
+        const actions = actionsDiv.querySelectorAll('.file-action') as NodeListOf<HTMLElement>;
+        actions.forEach(action => {
+            action.addEventListener('mouseenter', () => {
+                action.style.backgroundColor = 'var(--b3-theme-background-light)';
+            });
+            
+            action.addEventListener('mouseleave', () => {
+                action.style.backgroundColor = 'transparent';
+            });
+        });
+    }
 
     /**
      * 处理创建新的 TiddlyWiki
