@@ -20,7 +20,7 @@ export class menu {
     constructor(plugin: Plugin, isMobile: boolean) {
         this.plugin = plugin as ExtendedPlugin;
         this.isMobile = isMobile;
-        this.fileManager = new FileManager(plugin);
+        this.fileManager = new FileManager(plugin, isMobile);
         
         // 初始化文件管理器
         this.fileManager.initialize().catch(console.error);
@@ -84,6 +84,15 @@ export class menu {
             label: this.plugin.i18n.createNew,
             click: () => {
                 this.handleCreateTiddlyWiki();
+            }
+        });
+
+        // 添加导入
+        menu.addItem({
+            icon: "iconDownload",
+            label: this.plugin.i18n.importFile,
+            click: () => {
+                this.handleImport();
             }
         });
 
@@ -285,6 +294,22 @@ export class menu {
                 action.style.backgroundColor = "transparent";
             });
         });
+    }
+
+    /**
+     * 处理导入
+     */
+    private async handleImport() {
+        try {
+            const success = await this.fileManager.showImportDialog();
+            if (success) {
+                // 导入成功后可能需要刷新菜单，但是菜单是一次性的，用户会再次打开
+                showMessage(this.plugin.i18n.importSuccessMessage);
+            }
+        } catch (error) {
+            console.error('从菜单导入失败:', error);
+            showMessage(this.plugin.i18n.importFailed);
+        }
     }
 
     /**

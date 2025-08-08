@@ -23,7 +23,7 @@ export class dock {
         this.plugin = plugin as ExtendedPlugin;
         this.isMobile = isMobile;
         this.dockType = dockType;
-        this.fileManager = new FileManager(plugin);
+        this.fileManager = new FileManager(plugin, isMobile);
         
         // 初始化文件管理器
         this.fileManager.initialize().catch(console.error);
@@ -83,6 +83,7 @@ export class dock {
         </div>
         <span class="fn__flex-1 fn__space"></span>
         <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${this.plugin.i18n.refresh}"><svg><use xlink:href="#iconRefresh"></use></svg></span>
+        <span data-type="import" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${this.plugin.i18n.importFile}"><svg><use xlink:href="#iconDownload"></use></svg></span>
         <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${this.plugin.i18n.createNew}"><svg><use xlink:href="#iconAdd"></use></svg></span>
         <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ${adaptHotkey("⌘W")}"><svg><use xlink:href="#iconMin"></use></svg></span>
     </div>
@@ -106,6 +107,14 @@ export class dock {
             });
         }
 
+        // 添加导入按钮事件监听
+        const importButton = dock.element.querySelector("[data-type=\"import\"]");
+        if (importButton) {
+            importButton.addEventListener("click", () => {
+                this.handleImport();
+            });
+        }
+
         // 添加添加按钮事件监听
         const addButton = dock.element.querySelector("[data-type=\"add\"]");
         if (addButton) {
@@ -120,6 +129,22 @@ export class dock {
             minButton.addEventListener("click", () => {
                 this.handleMinimizeDock(dock);
             });
+        }
+    }
+
+    /**
+     * 处理导入
+     */
+    private async handleImport() {
+        try {
+            const success = await this.fileManager.showImportDialog();
+            if (success) {
+                // 导入成功后，刷新文件列表
+                this.refreshTiddlyWikiList();
+            }
+        } catch (error) {
+            console.error('导入失败:', error);
+            showMessage(this.plugin.i18n.importFailed || 'Import failed');
         }
     }
 
