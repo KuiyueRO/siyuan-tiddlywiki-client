@@ -1,0 +1,166 @@
+name: Release Plugin
+
+on:
+  push:
+    branches: [main]
+    paths: ['plugin.json']
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      new-version: ${{ steps.check.outputs.version }}
+      release-exists: ${{ steps.check-release.outputs.exists }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check version change
+        id: check
+        run: |
+          # 获取当前版本
+          CURRENT_VERSION=$(jq -r '.version' plugin.json)
+          echo "Current version: $CURRENT_VERSION"
+          
+          # 获取上一次提交的版本
+          git show HEAD~1:plugin.json > previous_plugin.json 2>/dev/null || echo '{"version":"0.0.0"}' > previous_plugin.json
+          PREVIOUS_VERSION=$(jq -r '.version' previous_plugin.json)
+          echo "Previous version: $PREVIOUS_VERSION"
+          
+          # 检查版本是否发生变化
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged"
+          fi
+
+      - name: Check if release exists
+        id: check-release
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          VERSION=${{ steps.check.outputs.version }}
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release v$VERSION already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Release v$VERSION does not exist"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-release:
+    runs-on: ubuntu-latest
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true' && needs.check-version.outputs.release-exists == 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build plugin
+        run: pnpm run build
+
+      - name: Verify package.zip exists
+        run: |
+          if [ ! -f "package.zip" ]; then
+            echo "Error: package.zip not found after build"
+            exit 1
+          fi
+          echo "package.zip size: $(du -h package.zip | cut -f1)"
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION=${{ needs.check-version.outputs.new-version }}
+          
+          # 从CHANGELOG.md中提取对应版本的更新日志
+          if [ -f "CHANGELOG.md" ]; then
+            # 查找版本标题行和下一个版本标题行之间的内容
+            CHANGELOG_CONTENT=$(awk "
+              /^## \[$VERSION\]/ { found=1; next }
+              /^## \[/ && found { exit }
+              found && !/^## \[$VERSION\]/ { print }
+            " CHANGELOG.md | sed '/^$/d' | head -n 20)
+            
+            if [ -n "$CHANGELOG_CONTENT" ]; then
+              echo "Found changelog for version $VERSION"
+              # 将换行符替换为 \n 以便在GitHub Actions中传递
+              CHANGELOG_ESCAPED=$(echo "$CHANGELOG_CONTENT" | sed ':a;N;$!ba;s/\n/\\n/g')
+              echo "changelog=$CHANGELOG_ESCAPED" >> $GITHUB_OUTPUT
+            else
+              echo "No changelog found for version $VERSION"
+              echo "changelog=Release version $VERSION" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No CHANGELOG.md found"
+            echo "changelog=Release version $VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version.outputs.new-version }}
+          release_name: Release v${{ needs.check-version.outputs.new-version }}
+          body: |
+            ## 🎉 SiYuan TiddlyWiki Client v${{ needs.check-version.outputs.new-version }}
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ---
+            
+            ### 📦 安装方法 / Installation
+            1. 下载 `package.zip` 文件
+            2. 在思源笔记中打开 `设置` → `集市` → `插件` → `从本地安装`
+            3. 选择下载的 `package.zip` 文件进行安装
+            
+            ### 🔄 更新方法 / Update
+            1. 如果已安装旧版本，请先在插件设置中禁用并删除旧版本
+            2. 按照安装方法重新安装新版本
+            
+            ### 📋 兼容性 / Compatibility
+            - 最低思源笔记版本: v3.2.1+
+            - 支持平台: Windows, Linux, macOS, iOS, Android, Docker
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ./package.zip
+          asset_name: package.zip
+          asset_content_type: application/zip
+
+      - name: Success Notification
+        run: |
+          echo "🎉 Successfully created release v${{ needs.check-version.outputs.new-version }}"
+          echo "📦 Package uploaded to GitHub Releases"
+          echo "🔗 Release URL: ${{ steps.create-release.outputs.html_url }}"
