@@ -24,13 +24,13 @@ export class SaveInterceptor {
      * @param fileName 当前编辑的文件名
      */
     setupSaveInterception(iframe: HTMLIFrameElement, fileName: string) {
-        console.log(this.plugin.i18n.setupSaveInterception.replace('{fileName}', fileName));
+        console.log(this.plugin.i18n.setupSaveInterception.replace("{fileName}", fileName));
         
         this.currentFileName = fileName;
         this.currentIframe = iframe;
 
         // 等待iframe完全加载后再设置拦截
-        if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+        if (iframe.contentDocument && iframe.contentDocument.readyState === "complete") {
             this.setupInterceptors(iframe);
         } else {
             iframe.onload = () => {
@@ -71,7 +71,7 @@ export class SaveInterceptor {
             console.log(this.plugin.i18n.allInterceptorsSetup);
 
         } catch (error) {
-            console.error(this.plugin.i18n.setupInterceptorsError + ':', error);
+            console.error(this.plugin.i18n.setupInterceptorsError + ":", error);
         }
     }
 
@@ -85,15 +85,15 @@ export class SaveInterceptor {
             const target = event.target as HTMLElement;
             
             // 检查是否是带download属性的链接
-            if (target.tagName === 'A') {
+            if (target.tagName === "A") {
                 const link = target as HTMLAnchorElement;
-                if (link.hasAttribute('download') && link.href) {
-                    console.log(this.plugin.i18n.interceptedDownloadLink + ':', link.href);
+                if (link.hasAttribute("download") && link.href) {
+                    console.log(this.plugin.i18n.interceptedDownloadLink + ":", link.href);
                     event.preventDefault();
                     event.stopPropagation();
                     
                     // 处理保存
-                    this.handleSave(link.href, link.download || 'tiddlywiki.html');
+                    this.handleSave(link.href, link.download || "tiddlywiki.html");
                     return;
                 }
             }
@@ -101,15 +101,15 @@ export class SaveInterceptor {
             // 检查父元素是否包含下载链接
             let currentElement = target.parentElement;
             while (currentElement) {
-                if (currentElement.tagName === 'A') {
+                if (currentElement.tagName === "A") {
                     const link = currentElement as HTMLAnchorElement;
-                    if (link.hasAttribute('download') && link.href) {
-                        console.log(this.plugin.i18n.interceptedParentDownloadLink + ':', link.href);
+                    if (link.hasAttribute("download") && link.href) {
+                        console.log(this.plugin.i18n.interceptedParentDownloadLink + ":", link.href);
                         event.preventDefault();
                         event.stopPropagation();
                         
                         // 处理保存
-                        this.handleSave(link.href, link.download || 'tiddlywiki.html');
+                        this.handleSave(link.href, link.download || "tiddlywiki.html");
                         return;
                     }
                 }
@@ -118,11 +118,11 @@ export class SaveInterceptor {
         };
 
         // 添加点击事件监听器
-        doc.addEventListener('click', interceptClick, true);
+        doc.addEventListener("click", interceptClick, true);
         
         // 保存清理函数
         this.interceptors.push(() => {
-            doc.removeEventListener('click', interceptClick, true);
+            doc.removeEventListener("click", interceptClick, true);
         });
     }
 
@@ -143,7 +143,7 @@ export class SaveInterceptor {
             
             // 如果是 Blob 对象，缓存它
             if (object instanceof Blob) {
-                console.log(plugin.i18n.cacheBlobUrl + ':', url, 'Type:', object.type);
+                console.log(plugin.i18n.cacheBlobUrl + ":", url, "Type:", object.type);
                 blobCache.set(url, object);
             }
             
@@ -155,21 +155,21 @@ export class SaveInterceptor {
             const target = event.target as HTMLElement;
             let link: HTMLAnchorElement | null = null;
 
-            if (target.tagName === 'A') {
+            if (target.tagName === "A") {
                 link = target as HTMLAnchorElement;
             } else {
                 // 查找父级链接元素
                 let current = target.parentElement;
-                while (current && current.tagName !== 'A') {
+                while (current && current.tagName !== "A") {
                     current = current.parentElement;
                 }
-                if (current && current.tagName === 'A') {
+                if (current && current.tagName === "A") {
                     link = current as HTMLAnchorElement;
                 }
             }
 
-            if (link && link.href.startsWith('blob:') && blobCache.has(link.href)) {
-                console.log(this.plugin.i18n.interceptedBlobUrlClick + ':', link.href);
+            if (link && link.href.startsWith("blob:") && blobCache.has(link.href)) {
+                console.log(this.plugin.i18n.interceptedBlobUrlClick + ":", link.href);
                 event.preventDefault();
                 event.stopPropagation();
 
@@ -183,18 +183,18 @@ export class SaveInterceptor {
                         win.URL.revokeObjectURL(link.href);
                         blobCache.delete(link.href);
                     } catch (error) {
-                        console.error(this.plugin.i18n.processBlobContentError + ':', error);
+                        console.error(this.plugin.i18n.processBlobContentError + ":", error);
                     }
                 }
             }
         };
 
-        win.document.addEventListener('click', interceptBlobClick, true);
+        win.document.addEventListener("click", interceptBlobClick, true);
 
         // 保存清理函数
         this.interceptors.push(() => {
             win.URL.createObjectURL = originalCreateObjectURL;
-            win.document.removeEventListener('click', interceptBlobClick, true);
+            win.document.removeEventListener("click", interceptBlobClick, true);
         });
     }
 
@@ -276,7 +276,7 @@ export class SaveInterceptor {
         console.log(this.plugin.i18n.setupKeyboardSaveInterception);
 
         const interceptKeydown = (event: KeyboardEvent) => {
-            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            if ((event.ctrlKey || event.metaKey) && event.key === "s") {
                 console.log(this.plugin.i18n.interceptedCtrlS);
                 event.preventDefault();
                 event.stopPropagation();
@@ -287,11 +287,11 @@ export class SaveInterceptor {
             }
         };
 
-        doc.addEventListener('keydown', interceptKeydown, true);
+        doc.addEventListener("keydown", interceptKeydown, true);
         
         // 保存清理函数
         this.interceptors.push(() => {
-            doc.removeEventListener('keydown', interceptKeydown, true);
+            doc.removeEventListener("keydown", interceptKeydown, true);
         });
     }
 
@@ -318,14 +318,14 @@ export class SaveInterceptor {
 
             // 方法2: 尝试调用 TiddlyWiki 的保存 API
             const tw = (win as any).$tw;
-            if (tw && tw.wiki && typeof tw.wiki.renderTiddler === 'function') {
+            if (tw && tw.wiki && typeof tw.wiki.renderTiddler === "function") {
                 console.log(this.plugin.i18n.tryTiddlyWikiApi);
                 // 这里可能需要根据具体的 TiddlyWiki 版本调整
                 try {
                     // 触发保存事件
-                    win.document.dispatchEvent(new CustomEvent('tw-save-wiki'));
+                    win.document.dispatchEvent(new CustomEvent("tw-save-wiki"));
                 } catch (apiError) {
-                    console.error(this.plugin.i18n.tiddlyWikiApiCallFailed + ':', apiError);
+                    console.error(this.plugin.i18n.tiddlyWikiApiCallFailed + ":", apiError);
                 }
             }
 
@@ -336,7 +336,7 @@ export class SaveInterceptor {
             }, 100);
 
         } catch (error) {
-            console.error(this.plugin.i18n.triggerSaveError + ':', error);
+            console.error(this.plugin.i18n.triggerSaveError + ":", error);
         }
     }
 
@@ -357,14 +357,14 @@ export class SaveInterceptor {
             let htmlContent = doc.documentElement.outerHTML;
             
             // 确保是完整的 HTML 文档
-            if (!htmlContent.toLowerCase().includes('<!doctype')) {
-                htmlContent = '<!DOCTYPE html>\n' + htmlContent;
+            if (!htmlContent.toLowerCase().includes("<!doctype")) {
+                htmlContent = "<!DOCTYPE html>\n" + htmlContent;
             }
 
             await this.saveToFile(htmlContent);
             
         } catch (error) {
-            console.error(this.plugin.i18n.getCurrentContentFailed + ':', error);
+            console.error(this.plugin.i18n.getCurrentContentFailed + ":", error);
             showMessage(this.plugin.i18n.saveFailedCannotGetContent);
         }
     }
@@ -374,15 +374,15 @@ export class SaveInterceptor {
      */
     private async handleSave(url: string, suggestedFileName?: string) {
         try {
-            console.log(this.plugin.i18n.handleSaveOperation + ':', url);
+            console.log(this.plugin.i18n.handleSaveOperation + ":", url);
             
             let content: string;
             
-            if (url.startsWith('data:')) {
+            if (url.startsWith("data:")) {
                 // 处理 data URL
                 console.log(this.plugin.i18n.handleDataUrl);
                 const dataUrl = url;
-                const commaIndex = dataUrl.indexOf(',');
+                const commaIndex = dataUrl.indexOf(",");
                 if (commaIndex === -1) {
                     throw new Error(this.plugin.i18n.invalidDataUrl);
                 }
@@ -390,12 +390,12 @@ export class SaveInterceptor {
                 const mimeType = dataUrl.substring(5, commaIndex);
                 const data = dataUrl.substring(commaIndex + 1);
                 
-                if (mimeType.includes('base64')) {
+                if (mimeType.includes("base64")) {
                     content = atob(data);
                 } else {
                     content = decodeURIComponent(data);
                 }
-            } else if (url.startsWith('blob:')) {
+            } else if (url.startsWith("blob:")) {
                 // 处理 blob URL
                 console.log(this.plugin.i18n.handleBlobUrl);
                 const response = await fetch(url);
@@ -410,7 +410,7 @@ export class SaveInterceptor {
             await this.saveToFile(content);
             
         } catch (error) {
-            console.error(this.plugin.i18n.handleSaveError + ':', error);
+            console.error(this.plugin.i18n.handleSaveError + ":", error);
             showMessage(`${this.plugin.i18n.saveFailed}: ${error.message}`);
         }
     }
@@ -430,7 +430,7 @@ export class SaveInterceptor {
             // 移除保存中状态显示，使用思源和TiddlyWiki内置提示
 
             // 验证内容是否是有效的 HTML
-            if (!content.toLowerCase().includes('<html') || !content.toLowerCase().includes('</html>')) {
+            if (!content.toLowerCase().includes("<html") || !content.toLowerCase().includes("</html>")) {
                 console.warn(this.plugin.i18n.contentNotCompleteHtml);
             }
 
@@ -446,7 +446,7 @@ export class SaveInterceptor {
             showMessage(`${this.plugin.i18n.savedTo} ${this.currentFileName}`, 3000);
 
         } catch (error) {
-            console.error(this.plugin.i18n.saveFileError + ':', error);
+            console.error(this.plugin.i18n.saveFileError + ":", error);
             showMessage(`${this.plugin.i18n.saveFailed}: ${error.message}`, 5000);
             throw error;
         }
@@ -463,7 +463,7 @@ export class SaveInterceptor {
             try {
                 cleanup();
             } catch (error) {
-                console.error(this.plugin.i18n.cleanupInterceptorError + ':', error);
+                console.error(this.plugin.i18n.cleanupInterceptorError + ":", error);
             }
         });
         

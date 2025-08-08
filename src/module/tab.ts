@@ -106,22 +106,22 @@ export class tab {
      */
     async openTiddlyWikiInTab(fileName: string) {
         try {
-            console.log('准备打开TiddlyWiki文件:', fileName);
+            console.log("准备打开TiddlyWiki文件:", fileName);
             
             // 读取TiddlyWiki内容
             const content = await this.fileManager.readTiddlyWiki(fileName);
             if (!content) {
-                console.error('无法读取TiddlyWiki文件内容');
+                console.error("无法读取TiddlyWiki文件内容");
                 return;
             }
 
-            console.log('TiddlyWiki内容已读取，长度:', content.length);
+            console.log("TiddlyWiki内容已读取，长度:", content.length);
 
             // 为这个特定的TiddlyWiki文件创建唯一的tab类型
             const tabId = Math.random().toString(36).substring(7);
             const tabType = `tiddlywiki-${tabId}`;
             
-            console.log('创建的标签页类型:', tabType);
+            console.log("创建的标签页类型:", tabType);
             
             // 保存当前实例的引用，以便在闭包中使用
             const tabInstance = this;
@@ -142,11 +142,11 @@ export class tab {
                     }
                     
                     // 设置标签页样式
-                    this.element.style.width = '100%';
-                    this.element.style.height = '100%';
-                    this.element.style.display = 'block';
-                    this.element.style.backgroundColor = '#f9f9f9';
-                    this.element.style.overflow = 'hidden';
+                    this.element.style.width = "100%";
+                    this.element.style.height = "100%";
+                    this.element.style.display = "block";
+                    this.element.style.backgroundColor = "#f9f9f9";
+                    this.element.style.overflow = "hidden";
                     
                     // 先显示加载状态
                     this.element.innerHTML = `
@@ -174,21 +174,21 @@ export class tab {
                         
                         try {
                             // 创建iframe来渲染TiddlyWiki
-                            const iframe = document.createElement('iframe');
-                            iframe.style.width = '100%';
-                            iframe.style.height = '100%';
-                            iframe.style.border = 'none';
-                            iframe.style.background = '#fff';
-                            iframe.style.display = 'block';
+                            const iframe = document.createElement("iframe");
+                            iframe.style.width = "100%";
+                            iframe.style.height = "100%";
+                            iframe.style.border = "none";
+                            iframe.style.background = "#fff";
+                            iframe.style.display = "block";
                             
                             console.log("iframe已创建，准备设置内容");
                             
                             // 清空并添加iframe
-                            this.element.innerHTML = '';
+                            this.element.innerHTML = "";
                             this.element.appendChild(iframe);
                             
                             // 设置iframe内容
-                            const blob = new Blob([content], { type: 'text/html' });
+                            const blob = new Blob([content], { type: "text/html" });
                             const url = URL.createObjectURL(blob);
                             
                             iframe.onload = () => {
@@ -238,7 +238,7 @@ export class tab {
                             console.log("iframe src 已设置为 blob URL");
                             
                         } catch (error) {
-                            console.error('渲染TiddlyWiki失败:', error);
+                            console.error("渲染TiddlyWiki失败:", error);
                             this.element.innerHTML = `
                                 <div style="
                                     display: flex;
@@ -262,7 +262,7 @@ export class tab {
                     
                     // 清理保存拦截器
                     try {
-                        const iframe = this.element.querySelector('iframe') as HTMLIFrameElement;
+                        const iframe = this.element.querySelector("iframe") as HTMLIFrameElement;
                         if (iframe && (iframe as any).__interceptorId) {
                             const interceptorId = (iframe as any).__interceptorId;
                             const interceptor = tabInstance.saveInterceptors.get(interceptorId);
@@ -284,12 +284,12 @@ export class tab {
             console.log("标签页类型已注册:", tabType);
 
             // 2. 打开标签页 - 按照官方文档的正确方式
-            const displayName = fileName.replace('.html', '');
+            const displayName = fileName.replace(".html", "");
             openTab({
                 app: this.plugin.app,
                 custom: {
                     title: `TW: ${displayName}`,
-                    icon: 'iconTiddlyWiki',
+                    icon: "iconTiddlyWiki",
                     id: this.plugin.name + tabType,  // 使用正确的ID格式
                     data: {
                         fileName: fileName,
@@ -298,10 +298,10 @@ export class tab {
                 }
             });
             
-            console.log('TiddlyWiki标签页已打开，ID:', this.plugin.name + tabType);
+            console.log("TiddlyWiki标签页已打开，ID:", this.plugin.name + tabType);
             
         } catch (error) {
-            console.error('打开TiddlyWiki失败:', error);
+            console.error("打开TiddlyWiki失败:", error);
         }
     }
 
@@ -311,8 +311,8 @@ export class tab {
     private showTiddlyWikiInPopup(fileName: string, content: string) {
         try {
             // 创建弹出窗口容器
-            const popup = document.createElement('div');
-            popup.className = 'tiddlywiki-popup';
+            const popup = document.createElement("div");
+            popup.className = "tiddlywiki-popup";
             popup.style.cssText = `
                 position: fixed;
                 top: 0;
@@ -327,7 +327,7 @@ export class tab {
             `;
 
             // 创建弹出窗口内容
-            const popupContent = document.createElement('div');
+            const popupContent = document.createElement("div");
             popupContent.style.cssText = `
                 width: 90%;
                 height: 90%;
@@ -340,8 +340,8 @@ export class tab {
             `;
 
             // 创建标题栏
-            const titleBar = document.createElement('div');
-            const displayName = fileName.replace('.html', '');
+            const titleBar = document.createElement("div");
+            const displayName = fileName.replace(".html", "");
             titleBar.innerHTML = `
                 <div style="
                     padding: 12px 16px;
@@ -366,7 +366,7 @@ export class tab {
             `;
 
             // 创建内容区域
-            const contentArea = document.createElement('div');
+            const contentArea = document.createElement("div");
             contentArea.style.cssText = `
                 flex: 1;
                 overflow: hidden;
@@ -374,7 +374,7 @@ export class tab {
             `;
 
             // 创建iframe来渲染TiddlyWiki
-            const iframe = document.createElement('iframe');
+            const iframe = document.createElement("iframe");
             iframe.style.cssText = `
                 width: 100%;
                 height: 100%;
@@ -389,15 +389,15 @@ export class tab {
             popup.appendChild(popupContent);
 
             // 添加关闭事件
-            const closeBtn = titleBar.querySelector('.close-btn');
+            const closeBtn = titleBar.querySelector(".close-btn");
             const closePopup = () => {
                 if (popup.parentNode) {
                     popup.parentNode.removeChild(popup);
                 }
             };
 
-            closeBtn.addEventListener('click', closePopup);
-            popup.addEventListener('click', (e) => {
+            closeBtn.addEventListener("click", closePopup);
+            popup.addEventListener("click", (e) => {
                 if (e.target === popup) {
                     closePopup();
                 }
@@ -413,10 +413,10 @@ export class tab {
                         iframe.contentDocument.open();
                         iframe.contentDocument.write(content);
                         iframe.contentDocument.close();
-                        console.log('TiddlyWiki内容已在弹出窗口中加载完成');
+                        console.log("TiddlyWiki内容已在弹出窗口中加载完成");
                     }
                 } catch (error) {
-                    console.error('在iframe中加载内容失败:', error);
+                    console.error("在iframe中加载内容失败:", error);
                     contentArea.innerHTML = `
                         <div style="
                             display: flex;
@@ -434,7 +434,7 @@ export class tab {
             };
 
             // 使用blob URL方式（更安全）
-            const blob = new Blob([content], { type: 'text/html' });
+            const blob = new Blob([content], { type: "text/html" });
             const url = URL.createObjectURL(blob);
             iframe.src = url;
 
@@ -444,7 +444,7 @@ export class tab {
             };
 
         } catch (error) {
-            console.error('创建弹出窗口失败:', error);
+            console.error("创建弹出窗口失败:", error);
         }
     }
 
@@ -484,14 +484,14 @@ export class tab {
             }
 
             // 创建iframe来渲染TiddlyWiki
-            const iframe = document.createElement('iframe');
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.style.border = 'none';
-            iframe.style.background = '#fff';
+            const iframe = document.createElement("iframe");
+            iframe.style.width = "100%";
+            iframe.style.height = "100%";
+            iframe.style.border = "none";
+            iframe.style.background = "#fff";
 
             // 清空容器并添加iframe
-            element.innerHTML = '';
+            element.innerHTML = "";
             element.appendChild(iframe);
 
             // 等待iframe加载完成后写入内容
@@ -503,7 +503,7 @@ export class tab {
                         iframe.contentDocument.close();
                     }
                 } catch (error) {
-                    console.error('渲染TiddlyWiki内容失败:', error);
+                    console.error("渲染TiddlyWiki内容失败:", error);
                     element.innerHTML = `<div class="tiddlywiki-error" style="
                         display: flex;
                         flex-direction: column;
@@ -519,7 +519,7 @@ export class tab {
             };
 
             // 设置iframe的src为blob URL（更安全的方式）
-            const blob = new Blob([content], { type: 'text/html' });
+            const blob = new Blob([content], { type: "text/html" });
             const url = URL.createObjectURL(blob);
             iframe.src = url;
 
@@ -529,7 +529,7 @@ export class tab {
             };
 
         } catch (error) {
-            console.error('渲染TiddlyWiki失败:', error);
+            console.error("渲染TiddlyWiki失败:", error);
             element.innerHTML = `<div class="tiddlywiki-error" style="
                 display: flex;
                 flex-direction: column;

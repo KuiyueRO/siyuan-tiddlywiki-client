@@ -131,7 +131,7 @@ export class dock {
         const templates = await this.fileManager.getTemplates();
         const templateOptions = templates.map(template => 
             `<option value="${template}">${template}</option>`
-        ).join('');
+        ).join("");
 
         const dialog = new Dialog({
             title: this.plugin.i18n.createNew,
@@ -208,7 +208,7 @@ export class dock {
             const tiddlyWikiFiles = await this.fileManager.getTiddlyWikiList();
             
             // 统一的列表更新逻辑
-            const container = this.dockElement.querySelector('.tiddlywiki-list-container');
+            const container = this.dockElement.querySelector(".tiddlywiki-list-container");
             if (!container) return;
 
             // 显示加载状态
@@ -220,7 +220,7 @@ export class dock {
             }
 
             // 创建文件列表HTML
-            let listHTML = '';
+            let listHTML = "";
             for (const fileName of tiddlyWikiFiles) {
                 listHTML += this.createFileItemHTML(fileName);
             }
@@ -232,10 +232,10 @@ export class dock {
             
             console.log(`刷新TiddlyWiki列表完成，共 ${tiddlyWikiFiles.length} 个文件`);
         } catch (error) {
-            console.error('刷新TiddlyWiki列表失败:', error);
+            console.error("刷新TiddlyWiki列表失败:", error);
             
             // 统一的错误处理
-            const container = this.dockElement?.querySelector('.tiddlywiki-list-container');
+            const container = this.dockElement?.querySelector(".tiddlywiki-list-container");
             if (container) {
                 container.innerHTML = `<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">${this.plugin.i18n.loadFailedError}</div>`;
             }
@@ -246,7 +246,7 @@ export class dock {
      * 创建文件项HTML
      */
     private createFileItemHTML(fileName: string): string {
-        const displayName = fileName.replace('.html', '');
+        const displayName = fileName.replace(".html", "");
         return `
             <div class="tiddlywiki-file-item" data-filename="${fileName}" style="
                 margin: 2px 0;
@@ -296,16 +296,16 @@ export class dock {
      * 绑定文件项事件
      */
     private bindFileItemEvents(container: Element) {
-        const fileItems = container.querySelectorAll('.tiddlywiki-file-item');
+        const fileItems = container.querySelectorAll(".tiddlywiki-file-item");
         
         fileItems.forEach(item => {
-            const fileName = item.getAttribute('data-filename');
+            const fileName = item.getAttribute("data-filename");
             if (!fileName) return;
 
             // 点击文件名打开文件
-            const fileNameSpan = item.querySelector('.file-name');
+            const fileNameSpan = item.querySelector(".file-name");
             if (fileNameSpan) {
-                fileNameSpan.addEventListener('click', () => {
+                fileNameSpan.addEventListener("click", () => {
                     this.openTiddlyWiki(fileName);
                 });
             }
@@ -313,7 +313,7 @@ export class dock {
             // 重命名按钮
             const renameBtn = item.querySelector('[data-action="rename"]');
             if (renameBtn) {
-                renameBtn.addEventListener('click', (e) => {
+                renameBtn.addEventListener("click", (e) => {
                     e.stopPropagation();
                     this.renameTiddlyWiki(fileName);
                 });
@@ -322,26 +322,26 @@ export class dock {
             // 删除按钮
             const deleteBtn = item.querySelector('[data-action="delete"]');
             if (deleteBtn) {
-                deleteBtn.addEventListener('click', (e) => {
+                deleteBtn.addEventListener("click", (e) => {
                     e.stopPropagation();
                     this.deleteTiddlyWiki(fileName);
                 });
             }
 
             // 悬停效果
-            item.addEventListener('mouseenter', () => {
-                (item as HTMLElement).style.background = 'var(--b3-list-hover)';
-                const actions = item.querySelectorAll('.file-action') as NodeListOf<HTMLElement>;
+            item.addEventListener("mouseenter", () => {
+                (item as HTMLElement).style.background = "var(--b3-list-hover)";
+                const actions = item.querySelectorAll(".file-action") as NodeListOf<HTMLElement>;
                 actions.forEach(action => {
-                    action.style.opacity = '1';
+                    action.style.opacity = "1";
                 });
             });
 
-            item.addEventListener('mouseleave', () => {
-                (item as HTMLElement).style.background = 'var(--b3-theme-background)';
-                const actions = item.querySelectorAll('.file-action') as NodeListOf<HTMLElement>;
+            item.addEventListener("mouseleave", () => {
+                (item as HTMLElement).style.background = "var(--b3-theme-background)";
+                const actions = item.querySelectorAll(".file-action") as NodeListOf<HTMLElement>;
                 actions.forEach(action => {
-                    action.style.opacity = '0.7';
+                    action.style.opacity = "0.7";
                 });
             });
         });
@@ -377,8 +377,8 @@ export class dock {
             }
 
             // 创建弹出窗口容器
-            const popup = document.createElement('div');
-            popup.className = 'tiddlywiki-popup';
+            const popup = document.createElement("div");
+            popup.className = "tiddlywiki-popup";
             popup.style.cssText = `
                 position: fixed;
                 top: 0;
@@ -393,7 +393,7 @@ export class dock {
             `;
 
             // 创建弹出窗口内容
-            const popupContent = document.createElement('div');
+            const popupContent = document.createElement("div");
             popupContent.style.cssText = `
                 width: 95%;
                 height: 90%;
@@ -406,8 +406,8 @@ export class dock {
             `;
 
             // 创建标题栏
-            const titleBar = document.createElement('div');
-            const displayName = fileName.replace('.html', '');
+            const titleBar = document.createElement("div");
+            const displayName = fileName.replace(".html", "");
             titleBar.innerHTML = `
                 <div style="
                     padding: 12px 16px;
@@ -432,7 +432,7 @@ export class dock {
             `;
 
             // 创建内容区域
-            const contentArea = document.createElement('div');
+            const contentArea = document.createElement("div");
             contentArea.style.cssText = `
                 flex: 1;
                 overflow: hidden;
@@ -440,7 +440,7 @@ export class dock {
             `;
 
             // 创建iframe来渲染TiddlyWiki
-            const iframe = document.createElement('iframe');
+            const iframe = document.createElement("iframe");
             iframe.style.cssText = `
                 width: 100%;
                 height: 100%;
@@ -449,9 +449,9 @@ export class dock {
             `;
             // 关键：移除allow-same-origin防止导航劫持
             // allow-same-origin + allow-scripts = 可以访问父页面，这是危险的！
-            iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-downloads allow-modals');
+            iframe.setAttribute("sandbox", "allow-scripts allow-forms allow-downloads allow-modals");
             // 防止iframe改变父页面URL
-            iframe.setAttribute('referrerpolicy', 'no-referrer');
+            iframe.setAttribute("referrerpolicy", "no-referrer");
             // 设置iframe name防止target操作
             iframe.name = `tiddlywiki-${Date.now()}`;
 
@@ -470,9 +470,9 @@ export class dock {
             };
 
             // 添加关闭事件
-            const closeBtn = titleBar.querySelector('.close-btn');
-            closeBtn.addEventListener('click', closePopup);
-            popup.addEventListener('click', (e) => {
+            const closeBtn = titleBar.querySelector(".close-btn");
+            closeBtn.addEventListener("click", closePopup);
+            popup.addEventListener("click", (e) => {
                 if (e.target === popup) {
                     closePopup();
                 }
@@ -516,7 +516,7 @@ export class dock {
                 const loadTimeout = setTimeout(() => {
                     if (isLoaded) return; // 已经加载完成，忽略超时
                     
-                    console.warn('TiddlyWiki加载超时');
+                    console.warn("TiddlyWiki加载超时");
                     contentArea.innerHTML = `
                         <div style="
                             display: flex;
@@ -544,8 +544,8 @@ export class dock {
                     `;
                     
                     // 添加重试按钮事件
-                    const retryBtn = contentArea.querySelector('.retry-btn');
-                    retryBtn?.addEventListener('click', () => {
+                    const retryBtn = contentArea.querySelector(".retry-btn");
+                    retryBtn?.addEventListener("click", () => {
                         closePopup();
                         setTimeout(() => this.openTiddlyWikiInPopup(fileName), 100);
                     });
@@ -553,21 +553,21 @@ export class dock {
                 
                 iframe.onload = () => {
                     if (isLoaded) {
-                        console.log('TiddlyWiki onload重复触发，忽略');
+                        console.log("TiddlyWiki onload重复触发，忽略");
                         return; // 防止重复处理
                     }
                     
                     isLoaded = true;
                     clearTimeout(loadTimeout);
-                    console.log('TiddlyWiki弹出窗口加载完成（使用srcdoc）');
+                    console.log("TiddlyWiki弹出窗口加载完成（使用srcdoc）");
                     
                     // 只在首次加载时清理加载提示
-                    const loadingDiv = contentArea.querySelector('div');
-                    if (loadingDiv && loadingDiv.textContent.includes('正在加载')) {
+                    const loadingDiv = contentArea.querySelector("div");
+                    if (loadingDiv && loadingDiv.textContent.includes("正在加载")) {
                         loadingDiv.remove();
                     }
                     
-                    console.log('TiddlyWiki iframe已加载，沙盒限制生效');
+                    console.log("TiddlyWiki iframe已加载，沙盒限制生效");
                 };
                 
                 iframe.onerror = (error) => {
@@ -608,7 +608,7 @@ export class dock {
                 iframe.srcdoc = content;
                 
             } catch (error) {
-                console.error('创建TiddlyWiki blob失败:', error);
+                console.error("创建TiddlyWiki blob失败:", error);
                 contentArea.innerHTML = `
                     <div style="
                         display: flex;
@@ -627,7 +627,7 @@ export class dock {
             }
 
         } catch (error) {
-            console.error('打开弹出窗口失败:', error);
+            console.error("打开弹出窗口失败:", error);
             showMessage("打开TiddlyWiki失败");
         }
     }
@@ -636,7 +636,7 @@ export class dock {
      * 重命名TiddlyWiki文件
      */
     private renameTiddlyWiki(fileName: string) {
-        const currentName = fileName.replace('.html', '');
+        const currentName = fileName.replace(".html", "");
         
         const dialog = new Dialog({
             title: "重命名 TiddlyWiki",
