@@ -93,7 +93,7 @@ export class SaveInterceptor {
                     event.stopPropagation();
                     
                     // 处理保存
-                    this.handleSave(link.href, link.download || "tiddlywiki.html");
+                    this.handleSave(link.href);
                     return;
                 }
             }
@@ -109,7 +109,7 @@ export class SaveInterceptor {
                         event.stopPropagation();
                         
                         // 处理保存
-                        this.handleSave(link.href, link.download || "tiddlywiki.html");
+                        this.handleSave(link.href);
                         return;
                     }
                 }
@@ -133,13 +133,13 @@ export class SaveInterceptor {
         console.log(this.plugin.i18n.setupBlobUrlInterception);
 
         // 保存原始方法
-        const originalCreateObjectURL = win.URL.createObjectURL;
+        const originalCreateObjectURL = (win as any).URL.createObjectURL;
         const blobCache = new Map<string, Blob>();
         const plugin = this.plugin; // 保存 plugin 引用
 
         // 重写 createObjectURL 方法
-        win.URL.createObjectURL = function(object: Blob | MediaSource) {
-            const url = originalCreateObjectURL.call(win.URL, object);
+        (win as any).URL.createObjectURL = function(object: Blob | MediaSource) {
+            const url = originalCreateObjectURL.call((win as any).URL, object);
             
             // 如果是 Blob 对象，缓存它
             if (object instanceof Blob) {
@@ -180,7 +180,7 @@ export class SaveInterceptor {
                         await this.saveToFile(text);
                         
                         // 清理 blob URL
-                        win.URL.revokeObjectURL(link.href);
+                        (win as any).URL.revokeObjectURL(link.href);
                         blobCache.delete(link.href);
                     } catch (error) {
                         console.error(this.plugin.i18n.processBlobContentError + ":", error);
@@ -193,7 +193,7 @@ export class SaveInterceptor {
 
         // 保存清理函数
         this.interceptors.push(() => {
-            win.URL.createObjectURL = originalCreateObjectURL;
+            (win as any).URL.createObjectURL = originalCreateObjectURL;
             win.document.removeEventListener("click", interceptBlobClick, true);
         });
     }
@@ -372,7 +372,7 @@ export class SaveInterceptor {
     /**
      * 处理保存操作（处理 URL）
      */
-    private async handleSave(url: string, suggestedFileName?: string) {
+    private async handleSave(url: string) {
         try {
             console.log(this.plugin.i18n.handleSaveOperation + ":", url);
             

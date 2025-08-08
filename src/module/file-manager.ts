@@ -321,7 +321,7 @@ export class FileManager {
             // 更新文件列表
             try {
                 const currentList = await this.getTiddlyWikiList();
-                if (!currentList.includes(name)) {
+                if (currentList.indexOf(name) === -1) {
                     currentList.push(name);
                     await this.updateFileList(currentList);
                 }
@@ -498,7 +498,7 @@ export class FileManager {
             // 更新文件列表
             const currentList = await this.getTiddlyWikiList();
             const updatedList = currentList.filter(name => name !== oldName);
-            if (!updatedList.includes(newName)) {
+            if (!updatedList.indexOf(newName)) {
                 updatedList.push(newName);
             }
             await this.updateFileList(updatedList);

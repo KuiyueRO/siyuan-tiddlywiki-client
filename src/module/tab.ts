@@ -123,159 +123,15 @@ export class tab {
             
             console.log("创建的标签页类型:", tabType);
             
-            // 保存当前实例的引用，以便在闭包中使用
-            const tabInstance = this;
-            const pluginInstance = this.plugin;
+            // 创建标签页初始化函数
+            const initTabFunction = this.createTabInitFunction(fileName, content);
+            const destroyTabFunction = this.createTabDestroyFunction();
 
             // 1. 注册标签页类型
             this.plugin.addTab({
                 type: tabType,
-                init() {
-                    console.log("=== TiddlyWiki 标签页 init() 开始执行 ===");
-                    console.log("this:", this);
-                    console.log("this.element:", this.element);
-                    console.log("this.data:", this.data);
-                    
-                    if (!this.element) {
-                        console.error("标签页元素为空，无法继续初始化");
-                        return;
-                    }
-                    
-                    // 设置标签页样式
-                    this.element.style.width = "100%";
-                    this.element.style.height = "100%";
-                    this.element.style.display = "block";
-                    this.element.style.backgroundColor = "#f9f9f9";
-                    this.element.style.overflow = "hidden";
-                    
-                    // 先显示加载状态
-                    this.element.innerHTML = `
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            height: 100%;
-                            color: #666;
-                            font-size: 14px;
-                            background: #f9f9f9;
-                        ">
-                            <div style="text-align: center;">
-                                <div style="margin-bottom: 10px;">🔄</div>
-                                <div>正在加载 TiddlyWiki: ${fileName}...</div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    console.log("标签页加载状态已设置");
-                    
-                    // 延迟渲染内容，确保标签页完全初始化
-                    setTimeout(() => {
-                        console.log("开始延迟渲染TiddlyWiki内容");
-                        
-                        try {
-                            // 创建iframe来渲染TiddlyWiki
-                            const iframe = document.createElement("iframe");
-                            iframe.style.width = "100%";
-                            iframe.style.height = "100%";
-                            iframe.style.border = "none";
-                            iframe.style.background = "#fff";
-                            iframe.style.display = "block";
-                            
-                            console.log("iframe已创建，准备设置内容");
-                            
-                            // 清空并添加iframe
-                            this.element.innerHTML = "";
-                            this.element.appendChild(iframe);
-                            
-                            // 设置iframe内容
-                            const blob = new Blob([content], { type: "text/html" });
-                            const url = URL.createObjectURL(blob);
-                            
-                            iframe.onload = () => {
-                                console.log("TiddlyWiki iframe 加载完成");
-                                
-                                // 设置保存拦截器
-                                try {
-                                    const interceptor = new SaveInterceptor(pluginInstance);
-                                    interceptor.setupSaveInterception(iframe, fileName);
-                                    
-                                    // 存储拦截器以便后续清理
-                                    const interceptorId = Math.random().toString(36).substring(7);
-                                    tabInstance.saveInterceptors.set(interceptorId, interceptor);
-                                    
-                                    // 在iframe上存储interceptorId以便销毁时清理
-                                    (iframe as any).__interceptorId = interceptorId;
-                                    
-                                    console.log(`保存拦截器已设置，interceptorId: ${interceptorId}`);
-                                } catch (interceptorError) {
-                                    console.error("设置保存拦截器失败:", interceptorError);
-                                }
-                                
-                                // 清理blob URL
-                                setTimeout(() => URL.revokeObjectURL(url), 1000);
-                            };
-                            
-                            iframe.onerror = (error) => {
-                                console.error("TiddlyWiki iframe 加载错误:", error);
-                                this.element.innerHTML = `
-                                    <div style="
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        height: 100%;
-                                        color: #f56c6c;
-                                        text-align: center;
-                                    ">
-                                        <div>
-                                            <div>❌ 加载失败</div>
-                                            <div style="font-size: 12px; margin-top: 8px;">无法加载 ${fileName}</div>
-                                        </div>
-                                    </div>
-                                `;
-                            };
-                            
-                            iframe.src = url;
-                            console.log("iframe src 已设置为 blob URL");
-                            
-                        } catch (error) {
-                            console.error("渲染TiddlyWiki失败:", error);
-                            this.element.innerHTML = `
-                                <div style="
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    height: 100%;
-                                    color: #f56c6c;
-                                    text-align: center;
-                                ">
-                                    <div>
-                                        <div>❌ 渲染失败</div>
-                                        <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    }, 200);
-                },
-                beforeDestroy() {
-                    console.log("TiddlyWiki标签页即将销毁");
-                    
-                    // 清理保存拦截器
-                    try {
-                        const iframe = this.element.querySelector("iframe") as HTMLIFrameElement;
-                        if (iframe && (iframe as any).__interceptorId) {
-                            const interceptorId = (iframe as any).__interceptorId;
-                            const interceptor = tabInstance.saveInterceptors.get(interceptorId);
-                            if (interceptor) {
-                                console.log(`清理保存拦截器: ${interceptorId}`);
-                                interceptor.destroy();
-                                tabInstance.saveInterceptors.delete(interceptorId);
-                            }
-                        }
-                    } catch (cleanupError) {
-                        console.error("清理保存拦截器时出错:", cleanupError);
-                    }
-                },
+                init: initTabFunction,
+                beforeDestroy: destroyTabFunction,
                 destroy() {
                     console.log("TiddlyWiki标签页已销毁");
                 }
@@ -303,6 +159,173 @@ export class tab {
         } catch (error) {
             console.error("打开TiddlyWiki失败:", error);
         }
+    }
+
+    /**
+     * 创建标签页初始化函数
+     */
+    private createTabInitFunction(fileName: string, content: string) {
+        // 保存当前实例引用，用于访问saveInterceptors
+        const saveInterceptors = this.saveInterceptors;
+        const plugin = this.plugin;
+        
+        return function(this: Custom) {
+            console.log("=== TiddlyWiki 标签页 init() 开始执行 ===");
+            console.log("this:", this);
+            console.log("this.element:", this.element);
+            console.log("this.data:", this.data);
+            
+            if (!this.element) {
+                console.error("标签页元素为空，无法继续初始化");
+                return;
+            }
+            
+            // 设置标签页样式
+            (this.element as HTMLElement).style.width = "100%";
+            (this.element as HTMLElement).style.height = "100%";
+            (this.element as HTMLElement).style.display = "block";
+            (this.element as HTMLElement).style.backgroundColor = "#f9f9f9";
+            (this.element as HTMLElement).style.overflow = "hidden";
+            
+            // 先显示加载状态
+            this.element.innerHTML = `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100%;
+                    color: #666;
+                    font-size: 14px;
+                    background: #f9f9f9;
+                ">
+                    <div style="text-align: center;">
+                        <div style="margin-bottom: 10px;">🔄</div>
+                        <div>正在加载 TiddlyWiki: ${fileName}...</div>
+                    </div>
+                </div>
+            `;
+            
+            console.log("标签页加载状态已设置");
+            
+            // 延迟渲染内容，确保标签页完全初始化
+            // eslint-disable-next-line @typescript-eslint/no-this-alias
+            const customTabElement = this;
+            setTimeout(() => {
+                console.log("开始延迟渲染TiddlyWiki内容");
+                
+                try {
+                    // 创建iframe来渲染TiddlyWiki
+                    const iframe = document.createElement("iframe");
+                    iframe.style.width = "100%";
+                    iframe.style.height = "100%";
+                    iframe.style.border = "none";
+                    iframe.style.background = "#fff";
+                    iframe.style.display = "block";
+                    
+                    console.log("iframe已创建，准备设置内容");
+                    
+                    // 清空并添加iframe
+                    customTabElement.element.innerHTML = "";
+                    customTabElement.element.appendChild(iframe);
+                    
+                    // 设置iframe内容
+                    const blob = new Blob([content], { type: "text/html" });
+                    const url = URL.createObjectURL(blob);
+                    
+                    iframe.onload = () => {
+                        console.log("TiddlyWiki iframe 加载完成");
+                        
+                        // 设置保存拦截器
+                        try {
+                            const interceptor = new SaveInterceptor(plugin);
+                            interceptor.setupSaveInterception(iframe, fileName);
+                            
+                            // 存储拦截器以便后续清理
+                            const interceptorId = Math.random().toString(36).substring(7);
+                            saveInterceptors.set(interceptorId, interceptor);
+                            
+                            // 在iframe上存储interceptorId以便销毁时清理
+                            (iframe as any).__interceptorId = interceptorId;
+                            
+                            console.log(`保存拦截器已设置，interceptorId: ${interceptorId}`);
+                        } catch (interceptorError) {
+                            console.error("设置保存拦截器失败:", interceptorError);
+                        }
+                        
+                        // 清理blob URL
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    };
+                    
+                    iframe.onerror = (error) => {
+                        console.error("TiddlyWiki iframe 加载错误:", error);
+                        customTabElement.element.innerHTML = `
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                height: 100%;
+                                color: #f56c6c;
+                                text-align: center;
+                            ">
+                                <div>
+                                    <div>❌ 加载失败</div>
+                                    <div style="font-size: 12px; margin-top: 8px;">无法加载 ${fileName}</div>
+                                </div>
+                            </div>
+                        `;
+                    };
+                    
+                    iframe.src = url;
+                    console.log("iframe src 已设置为 blob URL");
+                    
+                } catch (error) {
+                    console.error("渲染TiddlyWiki失败:", error);
+                    customTabElement.element.innerHTML = `
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100%;
+                            color: #f56c6c;
+                            text-align: center;
+                        ">
+                            <div>
+                                <div>❌ 渲染失败</div>
+                                <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 200);
+        };
+    }
+
+    /**
+     * 创建标签页销毁函数
+     */
+    private createTabDestroyFunction() {
+        // 保存当前实例引用，用于访问saveInterceptors
+        const saveInterceptors = this.saveInterceptors;
+        
+        return function(this: Custom) {
+            console.log("TiddlyWiki标签页即将销毁");
+            
+            // 清理保存拦截器
+            try {
+                const iframe = this.element.querySelector("iframe") as HTMLIFrameElement;
+                if (iframe && (iframe as any).__interceptorId) {
+                    const interceptorId = (iframe as any).__interceptorId;
+                    const interceptor = saveInterceptors.get(interceptorId);
+                    if (interceptor) {
+                        console.log(`清理保存拦截器: ${interceptorId}`);
+                        interceptor.destroy();
+                        saveInterceptors.delete(interceptorId);
+                    }
+                }
+            } catch (cleanupError) {
+                console.error("清理保存拦截器时出错:", cleanupError);
+            }
+        };
     }
 
     /**
