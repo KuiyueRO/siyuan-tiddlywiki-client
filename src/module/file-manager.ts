@@ -208,13 +208,63 @@ export class FileManager {
      * 获取所有可用的模板文件
      */
     async getTemplates(): Promise<string[]> {
-        const knownTemplates = ["empty.html", "tiddlywiki.html", "basic.html"];
+        try {
+            // 使用思源 kernel API 列出模板目录中的文件
+            const response = await fetch('/api/file/readDir', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    path: `/data/storage/petal/${this.plugin.name}/${this.templateDir}`
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.code === 0 && data.data) {
+                    // 过滤出 .html 文件
+                    const htmlFiles = data.data
+                        .filter((item: any) => !item.isDir && item.name.endsWith('.html'))
+                        .map((item: any) => item.name)
+                        .sort();
+                    
+                    if (htmlFiles.length > 0) {
+                        console.log('动态获取到模板文件:', htmlFiles);
+                        return htmlFiles;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('使用 kernel API 获取模板文件失败，回退到固定列表模式:', error);
+        }
+        
+        // 回退到原来的固定列表检查方式
+        const knownTemplates = [
+            "empty.html", 
+            "tiddlywiki.html", 
+            "basic.html",
+            "tiddlyroam.html",  // 添加已知存在的文件
+            "stroll.html",
+            "drift.html",
+            "notebook.html",
+            "wiki.html",
+            "journal.html",
+            "template.html",
+            "default.html",
+            "blank.html",
+            "custom.html"
+        ];
+        
         const templates: string[] = [];
         
         for (const templateName of knownTemplates) {
             try {
                 const data = await this.plugin.loadData(`${this.templateDir}/${templateName}`);
-                if (data) templates.push(templateName);
+                if (data) {
+                    templates.push(templateName);
+                    console.log(`发现模板文件: ${templateName}`);
+                }
             } catch {
                 continue;
             }
@@ -225,7 +275,7 @@ export class FileManager {
             templates.push("empty.html");
         }
         
-        return templates;
+        return templates.sort();
     }
 
     /**
