@@ -38,7 +38,7 @@ export class dock {
                 position: "LeftBottom" as const,
                 size: {width: 200, height: 0},
                 icon: "iconTiddlyWiki",
-                title: "TiddlyWiki",
+                title: this.plugin.i18n.dockTitle,
                 hotkey: "⌥⌘W",
             },
             data: {
@@ -82,12 +82,12 @@ export class dock {
             <svg class="block__logoicon"><use xlink:href="#iconTiddlyWiki"></use></svg>TiddlyWiki
         </div>
         <span class="fn__flex-1 fn__space"></span>
-        <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="刷新列表"><svg><use xlink:href="#iconRefresh"></use></svg></span>
-        <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="新建TiddlyWiki"><svg><use xlink:href="#iconAdd"></use></svg></span>
+        <span data-type="refresh" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${this.plugin.i18n.refresh}"><svg><use xlink:href="#iconRefresh"></use></svg></span>
+        <span data-type="add" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="${this.plugin.i18n.createNew}"><svg><use xlink:href="#iconAdd"></use></svg></span>
         <span data-type="min" class="block__icon b3-tooltips b3-tooltips__sw" aria-label="Min ${adaptHotkey("⌘W")}"><svg><use xlink:href="#iconMin"></use></svg></span>
     </div>
     <div class="fn__flex-1 tiddlywiki-list-container" style="overflow-y: auto; padding: 4px;">
-        <div class="tiddlywiki-loading">加载中...</div>
+        <div class="tiddlywiki-loading">${this.plugin.i18n.loading}</div>
     </div>
 </div>`;
         
@@ -134,22 +134,22 @@ export class dock {
         ).join('');
 
         const dialog = new Dialog({
-            title: "新建 TiddlyWiki",
+            title: this.plugin.i18n.createNew,
             content: `<div class="b3-dialog__content">
     <div class="b3-form__row">
-        <label class="b3-form__label">名称</label>
-        <input class="b3-text-field fn__block" placeholder="输入TiddlyWiki名称" id="tiddlyWikiItemName">
+        <label class="b3-form__label">${this.plugin.i18n.name}</label>
+        <input class="b3-text-field fn__block" placeholder="${this.plugin.i18n.enterTiddlyWikiName}" id="tiddlyWikiItemName">
     </div>
     <div class="b3-form__row">
-        <label class="b3-form__label">模板</label>
+        <label class="b3-form__label">${this.plugin.i18n.template}</label>
         <select class="b3-select fn__block" id="tiddlyWikiTemplate">
             ${templateOptions}
         </select>
     </div>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">创建</button>
+    <button class="b3-button b3-button--cancel">${this.plugin.i18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${this.plugin.i18n.create}</button>
 </div>`,
             width: this.isMobile ? "92vw" : "480px",
         });
@@ -177,7 +177,7 @@ export class dock {
                     dialog.destroy();
                 }
             } else {
-                showMessage("请输入TiddlyWiki名称");
+                showMessage(this.plugin.i18n.enterTiddlyWikiName);
                 nameInput.focus();
             }
         });
@@ -212,10 +212,10 @@ export class dock {
             if (!container) return;
 
             // 显示加载状态
-            container.innerHTML = '<div class="tiddlywiki-loading" style="text-align: center; padding: 20px; color: #999;">加载中...</div>';
+            container.innerHTML = `<div class="tiddlywiki-loading" style="text-align: center; padding: 20px; color: #999;">${this.plugin.i18n.loading}</div>`;
 
             if (tiddlyWikiFiles.length === 0) {
-                container.innerHTML = '<div class="tiddlywiki-empty" style="text-align: center; padding: 20px; color: #999;">暂无TiddlyWiki文件<br><small>点击上方 + 按钮创建</small></div>';
+                container.innerHTML = `<div class="tiddlywiki-empty" style="text-align: center; padding: 20px; color: #999;">${this.plugin.i18n.noTiddlyWikiFiles}<br><small>点击上方 + 按钮创建</small></div>`;
                 return;
             }
 
@@ -237,7 +237,7 @@ export class dock {
             // 统一的错误处理
             const container = this.dockElement?.querySelector('.tiddlywiki-list-container');
             if (container) {
-                container.innerHTML = '<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">加载失败</div>';
+                container.innerHTML = `<div class="tiddlywiki-error" style="text-align: center; padding: 20px; color: #f56c6c;">${this.plugin.i18n.loadFailedError}</div>`;
             }
         }
     }
@@ -263,7 +263,7 @@ export class dock {
                 <svg style="width: 16px; height: 16px; flex-shrink: 0;"><use xlink:href="#iconTiddlyWiki"></use></svg>
                 <span class="file-name" style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${fileName}">${displayName}</span>
                 <div class="file-actions" style="display: flex; gap: 2px;">
-                    <span class="file-action file-rename b3-tooltips b3-tooltips__sw" aria-label="重命名" data-action="rename" style="
+                    <span class="file-action file-rename b3-tooltips b3-tooltips__sw" aria-label="${this.plugin.i18n.rename}" data-action="rename" style="
                         width: 16px; 
                         height: 16px; 
                         cursor: pointer;
@@ -275,7 +275,7 @@ export class dock {
                     ">
                         <svg style="width: 12px; height: 12px;"><use xlink:href="#iconEdit"></use></svg>
                     </span>
-                    <span class="file-action file-delete b3-tooltips b3-tooltips__sw" aria-label="删除" data-action="delete" style="
+                    <span class="file-action file-delete b3-tooltips b3-tooltips__sw" aria-label="${this.plugin.i18n.delete}" data-action="delete" style="
                         width: 16px; 
                         height: 16px; 
                         cursor: pointer;
@@ -359,7 +359,7 @@ export class dock {
             if (this.plugin.tabModule) {
                 this.plugin.tabModule.openTiddlyWikiInTab(fileName);
             } else {
-                showMessage("无法打开TiddlyWiki: Tab模块未初始化");
+                showMessage(this.plugin.i18n.cannotOpenTiddlyWiki);
             }
         }
     }
@@ -372,7 +372,7 @@ export class dock {
             // 读取TiddlyWiki内容
             const content = await this.fileManager.readTiddlyWiki(fileName);
             if (!content) {
-                showMessage("无法读取TiddlyWiki文件内容");
+                showMessage(this.plugin.i18n.cannotLoadFile);
                 return;
             }
 
@@ -418,7 +418,7 @@ export class dock {
                     align-items: center;
                     font-weight: 500;
                 ">
-                    <span>TiddlyWiki: ${displayName}</span>
+                    <span>${this.plugin.i18n.dockTitle}: ${displayName}</span>
                     <button class="close-btn" style="
                         background: none;
                         border: none;

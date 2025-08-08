@@ -24,7 +24,7 @@ export class SaveInterceptor {
      * @param fileName 当前编辑的文件名
      */
     setupSaveInterception(iframe: HTMLIFrameElement, fileName: string) {
-        console.log(`为文件 ${fileName} 设置保存拦截`);
+        console.log(this.plugin.i18n.setupSaveInterception.replace('{fileName}', fileName));
         
         this.currentFileName = fileName;
         this.currentIframe = iframe;
@@ -50,11 +50,11 @@ export class SaveInterceptor {
             const iframeWindow = iframe.contentWindow;
             
             if (!iframeDoc || !iframeWindow) {
-                console.error('无法访问iframe内容，可能是跨域问题');
+                console.error(this.plugin.i18n.cannotAccessIframeContent);
                 return;
             }
 
-            console.log('开始设置拦截器');
+            console.log(this.plugin.i18n.startSetupInterceptors);
 
             // 1. 拦截 <a> 标签的下载点击
             this.interceptDownloadLinks(iframeDoc);
@@ -68,10 +68,10 @@ export class SaveInterceptor {
             // 4. 监听键盘快捷键保存
             this.interceptKeyboardSave(iframeDoc);
 
-            console.log('所有拦截器设置完成');
+            console.log(this.plugin.i18n.allInterceptorsSetup);
 
         } catch (error) {
-            console.error('设置拦截器时出错:', error);
+            console.error(this.plugin.i18n.setupInterceptorsError + ':', error);
         }
     }
 
@@ -79,7 +79,7 @@ export class SaveInterceptor {
      * 拦截下载链接点击
      */
     private interceptDownloadLinks(doc: Document) {
-        console.log('设置下载链接拦截');
+        console.log(this.plugin.i18n.setupDownloadLinkInterception);
 
         const interceptClick = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -88,7 +88,7 @@ export class SaveInterceptor {
             if (target.tagName === 'A') {
                 const link = target as HTMLAnchorElement;
                 if (link.hasAttribute('download') && link.href) {
-                    console.log('拦截到下载链接点击:', link.href);
+                    console.log(this.plugin.i18n.interceptedDownloadLink + ':', link.href);
                     event.preventDefault();
                     event.stopPropagation();
                     
@@ -104,7 +104,7 @@ export class SaveInterceptor {
                 if (currentElement.tagName === 'A') {
                     const link = currentElement as HTMLAnchorElement;
                     if (link.hasAttribute('download') && link.href) {
-                        console.log('拦截到父元素下载链接点击:', link.href);
+                        console.log(this.plugin.i18n.interceptedParentDownloadLink + ':', link.href);
                         event.preventDefault();
                         event.stopPropagation();
                         
@@ -130,7 +130,7 @@ export class SaveInterceptor {
      * 拦截 Blob URL 创建
      */
     private interceptBlobUrls(win: Window) {
-        console.log('设置 Blob URL 拦截');
+        console.log(this.plugin.i18n.setupBlobUrlInterception);
 
         // 保存原始方法
         const originalCreateObjectURL = win.URL.createObjectURL;
@@ -142,7 +142,7 @@ export class SaveInterceptor {
             
             // 如果是 Blob 对象，缓存它
             if (object instanceof Blob) {
-                console.log('缓存 Blob URL:', url, 'Type:', object.type);
+                console.log(this.plugin.i18n.cacheBlobUrl + ':', url, 'Type:', object.type);
                 blobCache.set(url, object);
             }
             
@@ -168,7 +168,7 @@ export class SaveInterceptor {
             }
 
             if (link && link.href.startsWith('blob:') && blobCache.has(link.href)) {
-                console.log('拦截到 Blob URL 点击:', link.href);
+                console.log(this.plugin.i18n.interceptedBlobUrlClick + ':', link.href);
                 event.preventDefault();
                 event.stopPropagation();
 
@@ -182,7 +182,7 @@ export class SaveInterceptor {
                         win.URL.revokeObjectURL(link.href);
                         blobCache.delete(link.href);
                     } catch (error) {
-                        console.error('处理 Blob 内容时出错:', error);
+                        console.error(this.plugin.i18n.processBlobContentError + ':', error);
                     }
                 }
             }
@@ -201,7 +201,7 @@ export class SaveInterceptor {
      * 拦截动态创建的下载链接
      */
     private interceptDynamicDownloads(win: Window) {
-        console.log('设置动态下载拦截');
+        console.log(this.plugin.i18n.setupDynamicDownloadInterception);
 
         const originalCreateElement = win.document.createElement;
         
@@ -215,7 +215,7 @@ export class SaveInterceptor {
                 const originalClick = link.click;
                 link.click = function() {
                     if (this.hasAttribute('download') && this.href) {
-                        console.log('拦截到动态创建的下载链接点击:', this.href);
+                        console.log(this.plugin.i18n.interceptedDynamicDownloadLink + ':', this.href);
                         
                         // 阻止默认点击行为
                         // 使用保存拦截器处理
@@ -241,7 +241,7 @@ export class SaveInterceptor {
                                         await interceptor.saveToFile(content);
                                     }
                                 } catch (error) {
-                                    console.error('处理动态下载失败:', error);
+                                    console.error(this.plugin.i18n.processDynamicDownloadFailed + ':', error);
                                 }
                             }, 0);
                             
@@ -271,11 +271,11 @@ export class SaveInterceptor {
      * 拦截键盘快捷键保存（Ctrl+S）
      */
     private interceptKeyboardSave(doc: Document) {
-        console.log('设置键盘保存拦截');
+        console.log(this.plugin.i18n.setupKeyboardSaveInterception);
 
         const interceptKeydown = (event: KeyboardEvent) => {
             if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-                console.log('拦截到 Ctrl+S 保存快捷键');
+                console.log(this.plugin.i18n.interceptedCtrlS);
                 event.preventDefault();
                 event.stopPropagation();
                 
@@ -299,7 +299,7 @@ export class SaveInterceptor {
     private triggerTiddlyWikiSave() {
         try {
             if (!this.currentIframe || !this.currentIframe.contentWindow) {
-                console.error('无法访问 TiddlyWiki iframe');
+                console.error(this.plugin.i18n.cannotAccessTiddlyWikiIframe);
                 return;
             }
 
@@ -309,7 +309,7 @@ export class SaveInterceptor {
             // 方法1: 寻找保存按钮并点击
             const saveButton = win.document.querySelector('[title*="save"], [aria-label*="save"], .tc-save-wiki, .tc-tiddler-save-button');
             if (saveButton && saveButton instanceof HTMLElement) {
-                console.log('找到保存按钮，模拟点击');
+                console.log(this.plugin.i18n.foundSaveButton);
                 saveButton.click();
                 return;
             }
@@ -317,24 +317,24 @@ export class SaveInterceptor {
             // 方法2: 尝试调用 TiddlyWiki 的保存 API
             const tw = (win as any).$tw;
             if (tw && tw.wiki && typeof tw.wiki.renderTiddler === 'function') {
-                console.log('尝试通过 TiddlyWiki API 触发保存');
+                console.log(this.plugin.i18n.tryTiddlyWikiApi);
                 // 这里可能需要根据具体的 TiddlyWiki 版本调整
                 try {
                     // 触发保存事件
                     win.document.dispatchEvent(new CustomEvent('tw-save-wiki'));
                 } catch (apiError) {
-                    console.error('TiddlyWiki API 调用失败:', apiError);
+                    console.error(this.plugin.i18n.tiddlyWikiApiCallFailed + ':', apiError);
                 }
             }
 
             // 方法3: 如果都不行，我们可以直接获取当前内容并保存
-            console.log('无法找到标准保存方法，尝试直接获取内容');
+            console.log(this.plugin.i18n.cannotFindSaveMethod);
             setTimeout(() => {
                 this.saveCurrentContent();
             }, 100);
 
         } catch (error) {
-            console.error('触发保存时出错:', error);
+            console.error(this.plugin.i18n.triggerSaveError + ':', error);
         }
     }
 
@@ -344,11 +344,11 @@ export class SaveInterceptor {
     private async saveCurrentContent() {
         try {
             if (!this.currentIframe || !this.currentIframe.contentDocument) {
-                console.error('无法访问当前 iframe 内容');
+                console.error(this.plugin.i18n.cannotAccessCurrentIframe);
                 return;
             }
 
-            console.log('获取当前 TiddlyWiki 页面内容');
+            console.log(this.plugin.i18n.getCurrentTiddlyWikiContent);
             const doc = this.currentIframe.contentDocument;
             
             // 获取完整的 HTML 内容
@@ -362,8 +362,8 @@ export class SaveInterceptor {
             await this.saveToFile(htmlContent);
             
         } catch (error) {
-            console.error('获取当前内容失败:', error);
-            showMessage('保存失败：无法获取当前内容');
+            console.error(this.plugin.i18n.getCurrentContentFailed + ':', error);
+            showMessage(this.plugin.i18n.saveFailedCannotGetContent);
         }
     }
 
@@ -372,17 +372,17 @@ export class SaveInterceptor {
      */
     private async handleSave(url: string, suggestedFileName?: string) {
         try {
-            console.log('处理保存操作:', url);
+            console.log(this.plugin.i18n.handleSaveOperation + ':', url);
             
             let content: string;
             
             if (url.startsWith('data:')) {
                 // 处理 data URL
-                console.log('处理 data URL');
+                console.log(this.plugin.i18n.handleDataUrl);
                 const dataUrl = url;
                 const commaIndex = dataUrl.indexOf(',');
                 if (commaIndex === -1) {
-                    throw new Error('无效的 data URL');
+                    throw new Error(this.plugin.i18n.invalidDataUrl);
                 }
                 
                 const mimeType = dataUrl.substring(5, commaIndex);
@@ -395,21 +395,21 @@ export class SaveInterceptor {
                 }
             } else if (url.startsWith('blob:')) {
                 // 处理 blob URL
-                console.log('处理 blob URL');
+                console.log(this.plugin.i18n.handleBlobUrl);
                 const response = await fetch(url);
                 if (!response.ok) {
-                    throw new Error(`获取 blob 内容失败: ${response.status}`);
+                    throw new Error(`${this.plugin.i18n.getBlobContentFailed}: ${response.status}`);
                 }
                 content = await response.text();
             } else {
-                throw new Error('不支持的 URL 类型');
+                throw new Error(this.plugin.i18n.unsupportedUrlType);
             }
 
             await this.saveToFile(content);
             
         } catch (error) {
-            console.error('处理保存时出错:', error);
-            showMessage(`保存失败: ${error.message}`);
+            console.error(this.plugin.i18n.handleSaveError + ':', error);
+            showMessage(`${this.plugin.i18n.saveFailed}: ${error.message}`);
         }
     }
 
@@ -419,33 +419,33 @@ export class SaveInterceptor {
     private async saveToFile(content: string) {
         try {
             if (!this.currentFileName) {
-                throw new Error('没有指定要保存的文件');
+                throw new Error(this.plugin.i18n.noFileSpecified);
             }
 
-            console.log(`保存内容到文件: ${this.currentFileName}`);
-            console.log(`内容长度: ${content.length}`);
+            console.log(`${this.plugin.i18n.saveContentToFile}: ${this.currentFileName}`);
+            console.log(`${this.plugin.i18n.contentLength}: ${content.length}`);
 
             // 移除保存中状态显示，使用思源和TiddlyWiki内置提示
 
             // 验证内容是否是有效的 HTML
             if (!content.toLowerCase().includes('<html') || !content.toLowerCase().includes('</html>')) {
-                console.warn('保存的内容可能不是完整的 HTML 文档');
+                console.warn(this.plugin.i18n.contentNotCompleteHtml);
             }
 
             // 使用文件管理器保存到原文件
             const success = await this.fileManager.saveTiddlyWiki(this.currentFileName, content);
             if (!success) {
-                throw new Error('文件管理器保存失败');
+                throw new Error(this.plugin.i18n.fileManagerSaveFailed);
             }
 
-            console.log(`文件已保存: ${this.currentFileName}`);
+            console.log(`${this.plugin.i18n.fileSaved}: ${this.currentFileName}`);
             
             // 只显示全局消息，移除视觉状态指示器
-            showMessage(`已保存到 ${this.currentFileName}`, 3000);
+            showMessage(`${this.plugin.i18n.savedTo} ${this.currentFileName}`, 3000);
 
         } catch (error) {
-            console.error('保存文件时出错:', error);
-            showMessage(`保存失败: ${error.message}`, 5000);
+            console.error(this.plugin.i18n.saveFileError + ':', error);
+            showMessage(`${this.plugin.i18n.saveFailed}: ${error.message}`, 5000);
             throw error;
         }
     }
@@ -454,14 +454,14 @@ export class SaveInterceptor {
      * 清理所有拦截器
      */
     cleanup() {
-        console.log('清理保存拦截器');
+        console.log(this.plugin.i18n.cleanupSaveInterceptor);
         
         // 执行所有清理函数
         this.interceptors.forEach(cleanup => {
             try {
                 cleanup();
             } catch (error) {
-                console.error('清理拦截器时出错:', error);
+                console.error(this.plugin.i18n.cleanupInterceptorError + ':', error);
             }
         });
         
@@ -478,6 +478,6 @@ export class SaveInterceptor {
      */
     destroy() {
         this.cleanup();
-        console.log('保存拦截器已销毁');
+        console.log(this.plugin.i18n.saveInterceptorDestroyed);
     }
 }

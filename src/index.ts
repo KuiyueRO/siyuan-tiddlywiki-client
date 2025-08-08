@@ -37,7 +37,7 @@ export default class TiddlyWikiPlugin extends Plugin {
         // 初始化模块
         this.initModules();
 
-        console.log("TiddlyWiki 插件已加载");
+        console.log(this.i18n.pluginLoaded);
     }
     
     /**
@@ -66,7 +66,7 @@ export default class TiddlyWikiPlugin extends Plugin {
     private addTopBarIcon() {
         const topBarElement = this.addTopBar({
             icon: "iconTiddlyWiki",
-            title: "TiddlyWiki 管理",
+            title: this.i18n.topBarTitle,
             position: "right",
             callback: async () => {
                 if (this.isMobile) {
@@ -88,11 +88,11 @@ export default class TiddlyWikiPlugin extends Plugin {
     
 
     onLayoutReady() {
-        console.log("TiddlyWiki 插件布局就绪");
+        console.log(this.i18n.pluginLayoutReady);
     }
 
     onunload() {
-        console.log("TiddlyWiki 插件正在卸载");
+        console.log(this.i18n.pluginUnloading);
         
         // 清理各个模块资源
         if (this.tiddlyWikiDock) {
@@ -109,6 +109,6 @@ export default class TiddlyWikiPlugin extends Plugin {
     }
 
     uninstall() {
-        console.log("TiddlyWiki 插件已卸载");
+        console.log(this.i18n.pluginUninstalled);
     }
 }

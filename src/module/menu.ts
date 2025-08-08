@@ -45,7 +45,7 @@ export class menu {
      */
     async addTopBarMenu(rect?: DOMRect) {
         const menu = new Menu("tiddlyWikiTopBarMenu", () => {
-            console.log("TiddlyWiki 菜单关闭");
+            console.log(this.plugin.i18n.menuClosed);
         });
         
         // 添加 TiddlyWiki 管理功能
@@ -70,7 +70,7 @@ export class menu {
         // 添加新建 TiddlyWiki
         menu.addItem({
             icon: "iconAdd",
-            label: "新建 TiddlyWiki",
+            label: this.plugin.i18n.createNew,
             click: () => {
                 this.handleCreateTiddlyWiki();
             }
@@ -79,9 +79,9 @@ export class menu {
         // 添加刷新文件列表
         menu.addItem({
             icon: "iconRefresh",
-            label: "刷新文件列表",
+            label: this.plugin.i18n.refreshFileList,
             click: () => {
-                showMessage("TiddlyWiki 文件列表已刷新", 2000);
+                showMessage(this.plugin.i18n.fileListRefreshed, 2000);
             }
         });
 
@@ -100,21 +100,21 @@ export class menu {
                     const fileSubmenuItems = [
                         {
                             icon: "iconTiddlyWiki",
-                            label: "打开",
+                            label: this.plugin.i18n.open,
                             click: () => {
                                 this.openTiddlyWiki(fileName);
                             }
                         },
                         {
                             icon: "iconEdit",
-                            label: "重命名",
+                            label: this.plugin.i18n.rename,
                             click: () => {
                                 this.handleRenameTiddlyWiki(fileName);
                             }
                         },
                         {
                             icon: "iconTrashcan",
-                            label: "删除",
+                            label: this.plugin.i18n.delete,
                             click: () => {
                                 this.handleDeleteTiddlyWiki(fileName);
                             }
@@ -132,7 +132,7 @@ export class menu {
                 // 添加文件列表主菜单项
                 menu.addItem({
                     icon: "iconTiddlyWiki",
-                    label: `TiddlyWiki 文件 (${tiddlyWikiFiles.length})`,
+                    label: `${this.plugin.i18n.tiddlyWikiFiles} (${tiddlyWikiFiles.length})`,
                     type: "submenu",
                     submenu: fileListItems
                 });
@@ -140,7 +140,7 @@ export class menu {
                 // 没有文件时显示提示
                 menu.addItem({
                     icon: "iconTiddlyWiki",
-                    label: "暂无 TiddlyWiki 文件",
+                    label: this.plugin.i18n.noTiddlyWikiFiles,
                     type: "readonly"
                 });
             }
@@ -148,7 +148,7 @@ export class menu {
             console.error('获取 TiddlyWiki 文件列表失败:', error);
             menu.addItem({
                 icon: "iconTiddlyWiki",
-                label: "文件列表加载失败",
+                label: this.plugin.i18n.fileListLoadFailed,
                 type: "readonly"
             });
         }
@@ -171,22 +171,22 @@ export class menu {
         ).join('');
 
         const dialog = new Dialog({
-            title: "新建 TiddlyWiki",
+            title: this.plugin.i18n.createNew,
             content: `<div class="b3-dialog__content">
     <div class="b3-form__row">
-        <label class="b3-form__label">名称</label>
-        <input class="b3-text-field fn__block" placeholder="输入TiddlyWiki名称" id="tiddlyWikiItemName">
+        <label class="b3-form__label">${this.plugin.i18n.name}</label>
+        <input class="b3-text-field fn__block" placeholder="${this.plugin.i18n.enterTiddlyWikiName}" id="tiddlyWikiItemName">
     </div>
     <div class="b3-form__row">
-        <label class="b3-form__label">模板</label>
+        <label class="b3-form__label">${this.plugin.i18n.template}</label>
         <select class="b3-select fn__block" id="tiddlyWikiTemplate">
             ${templateOptions}
         </select>
     </div>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">创建</button>
+    <button class="b3-button b3-button--cancel">${this.plugin.i18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${this.plugin.i18n.create}</button>
 </div>`,
             width: this.isMobile ? "92vw" : "480px",
         });
@@ -211,10 +211,10 @@ export class menu {
                 const success = await this.fileManager.createTiddlyWiki(name, template);
                 if (success) {
                     dialog.destroy();
-                    showMessage(`TiddlyWiki "${name}.html" 创建成功`, 3000);
+                    showMessage(`${this.plugin.i18n.dockTitle} "${name}.html" ${this.plugin.i18n.createdSuccessfully}`, 3000);
                 }
             } else {
-                showMessage("请输入TiddlyWiki名称");
+                showMessage(this.plugin.i18n.enterTiddlyWikiName);
                 nameInput.focus();
             }
         });
@@ -233,13 +233,13 @@ export class menu {
     private async openTiddlyWiki(fileName: string) {
         if (this.isMobile) {
             // 移动端暂时使用 showMessage 提示
-            showMessage(`移动端打开 ${fileName} 功能正在开发中`, 3000);
+            showMessage(`${this.plugin.i18n.mobileOpenInDevelopment} ${fileName}`, 3000);
         } else {
             // 桌面端使用tab方式
             if (this.plugin.tabModule) {
                 this.plugin.tabModule.openTiddlyWikiInTab(fileName);
             } else {
-                showMessage("无法打开TiddlyWiki: Tab模块未初始化");
+                showMessage(this.plugin.i18n.cannotOpenTiddlyWiki);
             }
         }
     }
@@ -251,16 +251,16 @@ export class menu {
         const currentName = fileName.replace('.html', '');
         
         const dialog = new Dialog({
-            title: "重命名 TiddlyWiki",
+            title: `${this.plugin.i18n.rename} ${this.plugin.i18n.dockTitle}`,
             content: `<div class="b3-dialog__content">
     <div class="b3-form__row">
-        <label class="b3-form__label">新名称</label>
-        <input class="b3-text-field fn__block" placeholder="输入新名称" id="newTiddlyWikiName" value="${currentName}">
+        <label class="b3-form__label">${this.plugin.i18n.newName}</label>
+        <input class="b3-text-field fn__block" placeholder="${this.plugin.i18n.enterNewName}" id="newTiddlyWikiName" value="${currentName}">
     </div>
 </div>
 <div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">取消</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">重命名</button>
+    <button class="b3-button b3-button--cancel">${this.plugin.i18n.cancel}</button><div class="fn__space"></div>
+    <button class="b3-button b3-button--text">${this.plugin.i18n.rename}</button>
 </div>`,
             width: this.isMobile ? "92vw" : "420px",
         });
@@ -286,7 +286,7 @@ export class menu {
                     dialog.destroy();
                 }
             } else if (!newName) {
-                showMessage("请输入新名称");
+                showMessage(this.plugin.i18n.enterNewName);
                 nameInput.focus();
             } else {
                 dialog.destroy();
@@ -306,8 +306,8 @@ export class menu {
      */
     private handleDeleteTiddlyWiki(fileName: string) {
         confirm(
-            "删除确认",
-            `确定要删除 "${fileName}" 吗？此操作不可恢复。`,
+            this.plugin.i18n.delete,
+            this.plugin.i18n.deleteConfirm.replace('{fileName}', fileName),
             async () => {
                 const success = await this.fileManager.deleteTiddlyWiki(fileName);
                 // FileManager 已经显示了成功消息，这里不需要重复显示

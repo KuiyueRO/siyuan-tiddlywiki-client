@@ -42,9 +42,9 @@ export class FileManager {
             await this.plugin.saveData(`${this.tiddlyWikiDir}/.gitkeep`, '');
             await this.plugin.removeData(`${this.tiddlyWikiDir}/.gitkeep`);
             
-            console.log("目录结构已创建");
+            console.log(this.plugin.i18n.directoryCreated);
         } catch (error) {
-            console.error("创建目录结构时出错:", error);
+            console.error(this.plugin.i18n.createDirectoryError + ':', error);
         }
     }
 
@@ -61,10 +61,10 @@ export class FileManager {
                 // 从插件内置template复制empty.html到数据目录
                 await this.copyEmptyHtmlTemplate();
             } else {
-                console.log("empty.html模板已存在");
+                console.log(this.plugin.i18n.emptyTemplateExists);
             }
         } catch (error) {
-            console.error("检查template文件时出错:", error);
+            console.error(this.plugin.i18n.checkTemplateError + ':', error);
             // 即使检查失败，也尝试复制模板文件
             await this.copyEmptyHtmlTemplate();
         }
@@ -94,19 +94,19 @@ export class FileManager {
 
             for (const path of possiblePaths) {
                 try {
-                    console.log(`尝试路径: ${path}`);
+                    console.log(this.plugin.i18n.tryingPath + ': ' + path);
                     const response = await fetch(path);
                     
                     if (response.ok) {
                         htmlContent = await response.text();
                         successPath = path;
-                        console.log(`成功从路径获取模板: ${path}`);
+                        console.log(this.plugin.i18n.successfullyGetTemplate + ': ' + path);
                         break;
                     } else {
-                        console.log(`路径 ${path} 失败，状态: ${response.status}`);
+                        console.log(this.plugin.i18n.pathFailed + ' ' + path + ', ' + this.plugin.i18n.pathFailed + ': ' + response.status);
                     }
                 } catch (pathError) {
-                    console.log(`路径 ${path} 出错:`, pathError);
+                    console.log(this.plugin.i18n.pathError + ' ' + path + ':', pathError);
                     continue;
                 }
             }
@@ -116,15 +116,15 @@ export class FileManager {
                 const templatePath = `${this.templateDir}/empty.html`;
                 await this.plugin.saveData(templatePath, htmlContent);
                 
-                console.log("empty.html模板已复制到数据目录:", templatePath);
-                showMessage("TiddlyWiki模板初始化成功");
+                console.log(this.plugin.i18n.emptyTemplateCopied + ':', templatePath);
+                showMessage(this.plugin.i18n.templateInitSuccess);
             } else {
                 // 如果所有路径都失败，创建一个基础的TiddlyWiki模板
-                console.warn("无法访问内置模板，创建基础模板");
+                console.warn(this.plugin.i18n.cannotAccessBuiltinTemplate);
                 await this.createBasicTemplate();
             }
         } catch (error) {
-            console.error("复制empty.html模板时出错:", error);
+            console.error(this.plugin.i18n.copyTemplateError + ':', error);
             // 如果复制失败，尝试创建基础模板
             await this.createBasicTemplate();
         }
@@ -220,11 +220,11 @@ export class FileManager {
             const templatePath = `${this.templateDir}/empty.html`;
             await this.plugin.saveData(templatePath, basicTemplate);
             
-            console.log("基础模板已创建:", templatePath);
-            showMessage("已创建基础TiddlyWiki模板，建议手动上传完整的TiddlyWiki文件");
+            console.log(this.plugin.i18n.basicTemplateCreated + ':', templatePath);
+            showMessage(this.plugin.i18n.basicTemplateCreatedMessage);
         } catch (error) {
-            console.error("创建基础模板失败:", error);
-            showMessage("初始化TiddlyWiki模板失败");
+            console.error(this.plugin.i18n.createBasicTemplateFailed + ':', error);
+            showMessage(this.plugin.i18n.initTemplateError);
         }
     }
 
@@ -275,17 +275,17 @@ export class FileManager {
                 if (existingData) {
                     templates.push('empty.html');
                 } else {
-                    console.warn("模板文件不存在，尝试重新复制");
+                    console.warn('Template file not exists, retrying copy');
                     await this.copyEmptyHtmlTemplate();
                     templates.push('empty.html');
                 }
             }
             
-            console.log("找到的模板文件:", templates);
+            console.log(this.plugin.i18n.foundTemplateFiles + ':', templates);
             return templates;
             
         } catch (error) {
-            console.error("获取模板列表时出错:", error);
+            console.error(this.plugin.i18n.getTemplateListError + ':', error);
             return ['empty.html']; // fallback
         }
     }
@@ -303,14 +303,14 @@ export class FileManager {
             // 检查文件是否已存在
             const exists = await this.tiddlyWikiExists(name);
             if (exists) {
-                showMessage(`TiddlyWiki "${name}" 已存在`);
+                showMessage(`${this.plugin.i18n.dockTitle} "${name}" ${this.plugin.i18n.tiddlyWikiExists}`);
                 return false;
             }
 
             // 读取模板内容
             const templateContent = await this.readTemplate(templateName);
             if (!templateContent) {
-                showMessage(`无法读取模板 "${templateName}"`);
+                showMessage(`${this.plugin.i18n.cannotReadTemplate} "${templateName}"`);  
                 return false;
             }
 
@@ -331,11 +331,11 @@ export class FileManager {
                 await this.updateFileList([name]);
             }
 
-            showMessage(`TiddlyWiki "${name}" 创建成功`);
+            showMessage(`${this.plugin.i18n.dockTitle} "${name}" ${this.plugin.i18n.tiddlyWikiCreated}`);
             return true;
         } catch (error) {
-            console.error("创建TiddlyWiki时出错:", error);
-            showMessage("创建TiddlyWiki失败");
+            console.error(this.plugin.i18n.createTiddlyWikiError + ':', error);
+            showMessage(this.plugin.i18n.createTiddlyWikiFailed);
             return false;
         }
     }
@@ -362,7 +362,7 @@ export class FileManager {
             const data = await this.plugin.loadData(templatePath);
             return data || null;
         } catch (error) {
-            console.error("读取模板时出错:", error);
+            console.error(this.plugin.i18n.readTemplateError + ':', error);
             return null;
         }
     }
@@ -379,38 +379,38 @@ export class FileManager {
             
             if (listData) {
                 try {
-                    console.log("读取到的文件列表数据:", listData, "类型:", typeof listData);
+                    console.log(this.plugin.i18n.readFileListData + ':', listData, 'Type:', typeof listData);
                     
                     let fileList: string[];
                     
                     // 如果数据已经是数组，直接使用
                     if (Array.isArray(listData)) {
-                        console.log("数据已经是数组格式，直接使用");
+                        console.log(this.plugin.i18n.dataAlreadyArray);
                         fileList = listData;
                     } else if (typeof listData === 'string') {
                         // 如果是字符串，尝试解析JSON
                         if (!listData || listData.trim() === '') {
-                            console.log("文件列表数据为空，返回空数组");
+                            console.log(this.plugin.i18n.fileListDataEmpty);
                             return [];
                         }
                         
                         // 处理可能的单引号格式（JavaScript数组格式）
                         let jsonString = listData;
                         if (jsonString.includes("'")) {
-                            console.log("检测到单引号格式，转换为双引号");
+                            console.log(this.plugin.i18n.detectSingleQuote);
                             jsonString = jsonString.replace(/'/g, '"');
                         }
                         
                         fileList = JSON.parse(jsonString);
                     } else {
-                        console.warn("未知的数据格式，尝试转换为字符串");
+                        console.warn(this.plugin.i18n.unknownDataFormat);
                         const jsonString = String(listData).replace(/'/g, '"');
                         fileList = JSON.parse(jsonString);
                     }
                     
                     // 确保解析出的是数组
                     if (!Array.isArray(fileList)) {
-                        console.warn("解析结果不是数组格式，重置为空数组");
+                        console.warn(this.plugin.i18n.parseResultNotArray);
                         await this.updateFileList([]);
                         return [];
                     }
@@ -426,7 +426,7 @@ export class FileManager {
                         }
                     }
                     
-                    console.log("有效文件列表:", validFiles);
+                    console.log(this.plugin.i18n.validFileList + ':', validFiles);
                     
                     // 更新文件列表
                     if (validFiles.length !== fileList.length) {
@@ -435,7 +435,7 @@ export class FileManager {
                     
                     return validFiles;
                 } catch (parseError) {
-                    console.error("解析文件列表失败:", parseError, "数据:", listData);
+                    console.error(this.plugin.i18n.parseFileListFailed + ':', parseError, 'Data:', listData);
                     // 重置文件列表
                     await this.updateFileList([]);
                     return [];
@@ -444,7 +444,7 @@ export class FileManager {
             
             return [];
         } catch (error) {
-            console.error("获取TiddlyWiki列表时出错:", error);
+            console.error(this.plugin.i18n.getTiddlyWikiListError + ':', error);
             return [];
         }
     }
@@ -455,11 +455,11 @@ export class FileManager {
     private async updateFileList(fileList: string[]) {
         try {
             const listPath = `${this.tiddlyWikiDir}/.file-list`;
-            console.log("保存文件列表:", fileList);
+            console.log(this.plugin.i18n.saveFileList + ':', fileList);
             // 直接保存数组，让思源API处理序列化
             await this.plugin.saveData(listPath, fileList);
         } catch (error) {
-            console.error("更新文件列表失败:", error);
+            console.error(this.plugin.i18n.updateFileListError + ':', error);
         }
     }
 
@@ -476,14 +476,14 @@ export class FileManager {
             // 检查新文件名是否已存在
             const exists = await this.tiddlyWikiExists(newName);
             if (exists) {
-                showMessage(`文件 "${newName}" 已存在`);
+                showMessage(`${this.plugin.i18n.fileExists} "${newName}"`);
                 return false;
             }
 
             // 读取原文件内容
             const content = await this.readTiddlyWiki(oldName);
             if (!content) {
-                showMessage(`无法读取原文件 "${oldName}"`);
+                showMessage(`${this.plugin.i18n.cannotReadOriginalFile} "${oldName}"`);
                 return false;
             }
 
@@ -503,11 +503,11 @@ export class FileManager {
             }
             await this.updateFileList(updatedList);
 
-            showMessage(`文件已重命名为 "${newName}"`);
+            showMessage(`${this.plugin.i18n.fileRenamedTo} "${newName}"`);
             return true;
         } catch (error) {
-            console.error("重命名TiddlyWiki时出错:", error);
-            showMessage("重命名失败");
+            console.error(this.plugin.i18n.renameTiddlyWikiError + ':', error);
+            showMessage(this.plugin.i18n.renameTiddlyWikiFailed);
             return false;
         }
     }
@@ -525,11 +525,11 @@ export class FileManager {
             const updatedList = currentList.filter(fileName => fileName !== name);
             await this.updateFileList(updatedList);
 
-            showMessage(`TiddlyWiki "${name}" 已删除`);
+            showMessage(`${this.plugin.i18n.dockTitle} "${name}" ${this.plugin.i18n.tiddlyWikiDeleted}`);
             return true;
         } catch (error) {
-            console.error("删除TiddlyWiki时出错:", error);
-            showMessage("删除失败");
+            console.error(this.plugin.i18n.deleteTiddlyWikiError + ':', error);
+            showMessage(this.plugin.i18n.deleteTiddlyWikiFailed);
             return false;
         }
     }
@@ -543,7 +543,7 @@ export class FileManager {
             const data = await this.plugin.loadData(filePath);
             return data || null;
         } catch (error) {
-            console.error("读取TiddlyWiki时出错:", error);
+            console.error(this.plugin.i18n.readTiddlyWikiError + ':', error);
             return null;
         }
     }
@@ -555,10 +555,10 @@ export class FileManager {
         try {
             const filePath = `${this.tiddlyWikiDir}/${name}`;
             await this.plugin.saveData(filePath, content);
-            console.log(`TiddlyWiki文件已保存: ${filePath}`);
+            console.log(`${this.plugin.i18n.tiddlyWikiFileSaved}: ${filePath}`);
             return true;
         } catch (error) {
-            console.error("保存TiddlyWiki时出错:", error);
+            console.error(this.plugin.i18n.saveTiddlyWikiError + ':', error);
             return false;
         }
     }
@@ -574,6 +574,6 @@ export class FileManager {
      * 销毁文件管理器
      */
     destroy() {
-        console.log("文件管理器已销毁");
+        console.log(this.plugin.i18n.fileManagerDestroyed);
     }
 }
