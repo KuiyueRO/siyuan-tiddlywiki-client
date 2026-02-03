@@ -143,8 +143,8 @@ export class dock {
                 this.refreshTiddlyWikiList();
             }
         } catch (error) {
-            console.error('导入失败:', error);
-            showMessage(this.plugin.i18n.importFailed || 'Import failed');
+            console.error("导入失败:", error);
+            showMessage(this.plugin.i18n.importFailed || "Import failed");
         }
     }
 

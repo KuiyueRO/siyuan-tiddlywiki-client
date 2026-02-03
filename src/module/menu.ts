@@ -307,7 +307,7 @@ export class menu {
                 showMessage(this.plugin.i18n.importSuccessMessage);
             }
         } catch (error) {
-            console.error('从菜单导入失败:', error);
+            console.error("从菜单导入失败:", error);
             showMessage(this.plugin.i18n.importFailed);
         }
     }

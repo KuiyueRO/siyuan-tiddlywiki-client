@@ -187,7 +187,7 @@ export class tab {
                 ">
                     <div style="text-align: center;">
                         <div style="margin-bottom: 10px;">🔄</div>
-                        <div>${plugin.i18n.loadingTiddlyWiki.replace('TiddlyWiki', fileName)}</div>
+                        <div>${plugin.i18n.loadingTiddlyWiki.replace("TiddlyWiki", fileName)}</div>
                     </div>
                 </div>
             `;

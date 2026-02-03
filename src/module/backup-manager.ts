@@ -8,8 +8,8 @@ import { ExtendedPlugin } from "./types";
 export class BackupManager {
     private plugin: ExtendedPlugin;
     private backupDir: string;
-    private maxBackups: number = 10; // 每个文件最多保留10个备份
-    private maxBackupAgeDays: number = 30; // 备份保留30天
+    private maxBackups = 10; // 每个文件最多保留10个备份
+    private maxBackupAgeDays = 30; // 备份保留30天
 
     constructor(plugin: Plugin) {
         this.plugin = plugin as ExtendedPlugin;
@@ -71,19 +71,19 @@ export class BackupManager {
      */
     private generateBackupFileName(originalName: string): string {
         // 分离文件名和扩展名
-        const lastDotIndex = originalName.lastIndexOf('.');
+        const lastDotIndex = originalName.lastIndexOf(".");
         const baseName = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
-        const extension = lastDotIndex !== -1 ? originalName.substring(lastDotIndex) : '';
+        const extension = lastDotIndex !== -1 ? originalName.substring(lastDotIndex) : "";
 
         // 生成时间戳（本地时间）
         const now = new Date();
         const timestamp = now.getFullYear() +
-            String(now.getMonth() + 1).padStart(2, '0') +
-            String(now.getDate()).padStart(2, '0') +
-            'T' +
-            String(now.getHours()).padStart(2, '0') +
-            String(now.getMinutes()).padStart(2, '0') +
-            String(now.getSeconds()).padStart(2, '0');
+            String(now.getMonth() + 1).padStart(2, "0") +
+            String(now.getDate()).padStart(2, "0") +
+            "T" +
+            String(now.getHours()).padStart(2, "0") +
+            String(now.getMinutes()).padStart(2, "0") +
+            String(now.getSeconds()).padStart(2, "0");
 
         // 生成7位随机UID
         const uid = this.generateUid(7);
@@ -97,8 +97,8 @@ export class BackupManager {
      * @returns 随机字符串
      */
     private generateUid(length: number): string {
-        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
+        const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        let result = "";
         for (let i = 0; i < length; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
@@ -128,7 +128,7 @@ export class BackupManager {
             // 删除超过30天的备份
             await this.cleanExpiredBackups(backups);
         } catch (error) {
-            console.error('Failed to clean old backups:', error);
+            console.error("Failed to clean old backups:", error);
         }
     }
 
@@ -177,9 +177,9 @@ export class BackupManager {
     async getBackupList(originalName: string): Promise<string[]> {
         try {
             // 使用 kernel API 扫描备份目录
-            const response = await fetch('/api/file/readDir', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const response = await fetch("/api/file/readDir", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     path: `/data/storage/petal/${this.plugin.name}/${this.backupDir}`
                 })
@@ -188,14 +188,14 @@ export class BackupManager {
             if (response.ok) {
                 const data = await response.json();
                 if (data.code === 0 && data.data) {
-                    const baseName = originalName.replace(/\.[^/.]+$/, ''); // 移除扩展名
+                    const baseName = originalName.replace(/\.[^/.]+$/, ""); // 移除扩展名
                     return data.data
                         .filter((item: any) => !item.isDir && item.name.startsWith(`${baseName}_`))
                         .map((item: any) => item.name);
                 }
             }
         } catch (error) {
-            console.warn('Failed to get backup list from API, trying fallback:', error);
+            console.warn("Failed to get backup list from API, trying fallback:", error);
         }
 
         return [];
@@ -211,7 +211,7 @@ export class BackupManager {
             // 提取原始文件名
             const originalName = this.extractOriginalName(backupName);
             if (!originalName) {
-                throw new Error('Cannot extract original name from backup');
+                throw new Error("Cannot extract original name from backup");
             }
 
             // 读取备份内容
@@ -219,7 +219,7 @@ export class BackupManager {
             const backupContent = await this.plugin.loadData(backupPath);
 
             if (!backupContent) {
-                throw new Error('Backup content is empty');
+                throw new Error("Backup content is empty");
             }
 
             // 先备份当前文件（如果存在）
@@ -263,9 +263,9 @@ export class BackupManager {
         files: Array<{ name: string; size: number; date: Date }>;
     }> {
         try {
-            const response = await fetch('/api/file/readDir', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const response = await fetch("/api/file/readDir", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     path: `/data/storage/petal/${this.plugin.name}/${this.backupDir}`
                 })
@@ -275,7 +275,7 @@ export class BackupManager {
                 const data = await response.json();
                 if (data.code === 0 && data.data) {
                     const files = data.data
-                        .filter((item: any) => !item.isDir && item.name.endsWith('.html'))
+                        .filter((item: any) => !item.isDir && item.name.endsWith(".html"))
                         .map((item: any) => {
                             const timestamp = this.extractTimestampFromBackupName(item.name);
                             return {
@@ -293,7 +293,7 @@ export class BackupManager {
                 }
             }
         } catch (error) {
-            console.error('Failed to get backup info:', error);
+            console.error("Failed to get backup info:", error);
         }
 
         return { totalBackups: 0, totalSize: 0, files: [] };
@@ -315,7 +315,7 @@ export class BackupManager {
             console.log(`Cleared ${deleted} backups`);
             return deleted;
         } catch (error) {
-            console.error('Failed to clear backups:', error);
+            console.error("Failed to clear backups:", error);
             return 0;
         }
     }

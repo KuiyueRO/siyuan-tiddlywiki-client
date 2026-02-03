@@ -14,7 +14,7 @@ export class FileManager {
     private isMobile: boolean;
     private backupManager: BackupManager;
 
-    constructor(plugin: Plugin, isMobile: boolean = false) {
+    constructor(plugin: Plugin, isMobile = false) {
         this.plugin = plugin as ExtendedPlugin;
         this.backupManager = new BackupManager(plugin);
         // 插件数据存储的根路径，不需要包含插件名称
@@ -216,10 +216,10 @@ export class FileManager {
     async getTemplates(): Promise<string[]> {
         try {
             // 使用思源 kernel API 列出模板目录中的文件
-            const response = await fetch('/api/file/readDir', {
-                method: 'POST',
+            const response = await fetch("/api/file/readDir", {
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     path: `/data/storage/petal/${this.plugin.name}/${this.templateDir}`
@@ -231,18 +231,18 @@ export class FileManager {
                 if (data.code === 0 && data.data) {
                     // 过滤出 .html 文件
                     const htmlFiles = data.data
-                        .filter((item: any) => !item.isDir && item.name.endsWith('.html'))
+                        .filter((item: any) => !item.isDir && item.name.endsWith(".html"))
                         .map((item: any) => item.name)
                         .sort();
                     
                     if (htmlFiles.length > 0) {
-                        console.log('动态获取到模板文件:', htmlFiles);
+                        console.log("动态获取到模板文件:", htmlFiles);
                         return htmlFiles;
                     }
                 }
             }
         } catch (error) {
-            console.warn('使用 kernel API 获取模板文件失败，回退到固定列表模式:', error);
+            console.warn("使用 kernel API 获取模板文件失败，回退到固定列表模式:", error);
         }
         
         // 回退到原来的固定列表检查方式
@@ -502,32 +502,32 @@ export class FileManager {
 
         try {
             if (!this.validateHtmlContent(content)) {
-                throw new Error('Invalid HTML content');
+                throw new Error("Invalid HTML content");
             }
 
             const backupFileName = await this.backupManager.createBackup(name);
             if (!backupFileName) {
-                console.warn('Backup creation failed, continuing with save...');
+                console.warn("Backup creation failed, continuing with save...");
             }
 
             await this.plugin.saveData(tempPath, content);
 
             const savedContent = await this.plugin.loadData(tempPath);
             if (savedContent !== content) {
-                throw new Error('Temporary file verification failed');
+                throw new Error("Temporary file verification failed");
             }
 
             try {
                 await this.plugin.removeData(filePath);
             } catch (removeError) {
-                console.log('Original file does not exist, creating new file');
+                console.log("Original file does not exist, creating new file");
             }
 
             await this.plugin.saveData(filePath, savedContent);
 
             const finalContent = await this.plugin.loadData(filePath);
             if (finalContent !== savedContent) {
-                throw new Error('Final file verification failed');
+                throw new Error("Final file verification failed");
             }
 
             await this.plugin.removeData(tempPath);
@@ -538,19 +538,19 @@ export class FileManager {
             try {
                 await this.attemptRecovery(name, filePath, tempPath);
             } catch (recoveryError) {
-                console.error('Recovery also failed:', recoveryError);
+                console.error("Recovery also failed:", recoveryError);
             }
             return false;
         }
     }
 
     private validateHtmlContent(content: string): boolean {
-        if (typeof content !== 'string' || content.length < 100) {
+        if (typeof content !== "string" || content.length < 100) {
             return false;
         }
 
         const lowerContent = content.toLowerCase();
-        const requiredTags = ['<html', '<head', '<body', '</html>', '</body>'];
+        const requiredTags = ["<html", "<head", "<body", "</html>", "</body>"];
         for (const tag of requiredTags) {
             if (!lowerContent.includes(tag)) {
                 console.warn(`Missing required tag: ${tag}`);
@@ -559,7 +559,7 @@ export class FileManager {
         }
 
         if (content.length > 50 * 1024 * 1024) {
-            console.error('File too large (>50MB)');
+            console.error("File too large (>50MB)");
             return false;
         }
 
@@ -567,17 +567,17 @@ export class FileManager {
     }
 
     private async attemptRecovery(name: string, filePath: string, tempPath: string): Promise<void> {
-        console.log('Attempting recovery...');
+        console.log("Attempting recovery...");
 
         try {
             const tempContent = await this.plugin.loadData(tempPath);
             if (tempContent) {
                 await this.plugin.saveData(filePath, tempContent);
-                console.log('Recovered from temp file');
+                console.log("Recovered from temp file");
                 return;
             }
         } catch (e) {
-            console.warn('Temp file recovery failed:', e);
+            console.warn("Temp file recovery failed:", e);
         }
 
         try {
@@ -586,15 +586,15 @@ export class FileManager {
                 const latestBackup = backups[0];
                 const originalName = await this.backupManager.restoreFromBackup(latestBackup);
                 if (originalName) {
-                    console.log('Recovered from backup');
+                    console.log("Recovered from backup");
                     return;
                 }
             }
         } catch (e) {
-            console.warn('Backup recovery failed:', e);
+            console.warn("Backup recovery failed:", e);
         }
 
-        throw new Error('All recovery methods failed');
+        throw new Error("All recovery methods failed");
     }
 
     /**
@@ -610,16 +610,16 @@ export class FileManager {
     async showImportDialog(): Promise<boolean> {
         return new Promise((resolve) => {
             const dialog = new Dialog({
-                title: this.plugin.i18n.importFile || 'Import File',
+                title: this.plugin.i18n.importFile || "Import File",
                 content: `<div class="b3-dialog__content">
-                    <p style="margin-bottom: 16px;">${this.plugin.i18n.selectImportType || 'Please select the import type:'}</p>
+                    <p style="margin-bottom: 16px;">${this.plugin.i18n.selectImportType || "Please select the import type:"}</p>
                     <div style="margin: 16px 0;">
                         <button class="b3-button b3-button--outline" id="importTiddlyWiki" style="width: 100%; margin-bottom: 8px; padding: 12px; text-align: left;">
                             <div style="display: flex; align-items: center;">
                                 <svg style="width: 16px; height: 16px; margin-right: 8px;"><use xlink:href="#iconTiddlyWiki"></use></svg>
                                 <div>
-                                    <div style="font-weight: 500;">${this.plugin.i18n.importTiddlyWiki || 'Import TiddlyWiki'}</div>
-                                    <div style="font-size: 12px; opacity: 0.7; margin-top: 2px;">${this.plugin.i18n.importTiddlyWikiDesc || 'Import as a TiddlyWiki file that can be opened and edited'}</div>
+                                    <div style="font-weight: 500;">${this.plugin.i18n.importTiddlyWiki || "Import TiddlyWiki"}</div>
+                                    <div style="font-size: 12px; opacity: 0.7; margin-top: 2px;">${this.plugin.i18n.importTiddlyWikiDesc || "Import as a TiddlyWiki file that can be opened and edited"}</div>
                                 </div>
                             </div>
                         </button>
@@ -627,15 +627,15 @@ export class FileManager {
                             <div style="display: flex; align-items: center;">
                                 <svg style="width: 16px; height: 16px; margin-right: 8px;"><use xlink:href="#iconDownload"></use></svg>
                                 <div>
-                                    <div style="font-weight: 500;">${this.plugin.i18n.importTemplate || 'Import Template'}</div>
-                                    <div style="font-size: 12px; opacity: 0.7; margin-top: 2px;">${this.plugin.i18n.importTemplateDesc || 'Import as a template for creating new TiddlyWikis'}</div>
+                                    <div style="font-weight: 500;">${this.plugin.i18n.importTemplate || "Import Template"}</div>
+                                    <div style="font-size: 12px; opacity: 0.7; margin-top: 2px;">${this.plugin.i18n.importTemplateDesc || "Import as a template for creating new TiddlyWikis"}</div>
                                 </div>
                             </div>
                         </button>
                     </div>
                 </div>
                 <div class="b3-dialog__action">
-                    <button class="b3-button b3-button--cancel" id="cancelBtn">${this.plugin.i18n.cancel || 'Cancel'}</button>
+                    <button class="b3-button b3-button--cancel" id="cancelBtn">${this.plugin.i18n.cancel || "Cancel"}</button>
                 </div>`,
                 width: this.isMobile ? "92vw" : "400px",
                 destroyCallback: () => {
@@ -645,9 +645,9 @@ export class FileManager {
             
             // 等待DOM元素创建完成
             setTimeout(() => {
-                const importTiddlyWikiBtn = dialog.element.querySelector('#importTiddlyWiki') as HTMLButtonElement;
-                const importTemplateBtn = dialog.element.querySelector('#importTemplate') as HTMLButtonElement;
-                const cancelBtn = dialog.element.querySelector('#cancelBtn') as HTMLButtonElement;
+                const importTiddlyWikiBtn = dialog.element.querySelector("#importTiddlyWiki") as HTMLButtonElement;
+                const importTemplateBtn = dialog.element.querySelector("#importTemplate") as HTMLButtonElement;
+                const cancelBtn = dialog.element.querySelector("#cancelBtn") as HTMLButtonElement;
                 
                 if (importTiddlyWikiBtn) {
                     importTiddlyWikiBtn.onclick = async () => {
@@ -681,9 +681,9 @@ export class FileManager {
     async importTiddlyWikiFile(): Promise<boolean> {
         try {
             // 创建文件选择器
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.html,.htm';
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".html,.htm";
             input.multiple = false;
             
             return new Promise((resolve) => {
@@ -697,7 +697,7 @@ export class FileManager {
                     }
                     
                     // 验证文件类型
-                    if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
+                    if (!file.name.toLowerCase().endsWith(".html") && !file.name.toLowerCase().endsWith(".htm")) {
                         showMessage(this.plugin.i18n.invalidFileType);
                         resolve(false);
                         return;
@@ -723,8 +723,8 @@ export class FileManager {
                         
                         // 生成文件名
                         let fileName = file.name;
-                        if (!fileName.endsWith('.html')) {
-                            fileName = fileName.replace(/\.(htm)$/i, '.html');
+                        if (!fileName.endsWith(".html")) {
+                            fileName = fileName.replace(/\.(htm)$/i, ".html");
                         }
                         
                         // 检查文件是否已存在
@@ -753,7 +753,7 @@ export class FileManager {
                         resolve(true);
                         
                     } catch (error) {
-                        console.error('导入TiddlyWiki文件失败:', error);
+                        console.error("导入TiddlyWiki文件失败:", error);
                         showMessage(this.plugin.i18n.tiddlyWikiImportFailed);
                         resolve(false);
                     }
@@ -767,7 +767,7 @@ export class FileManager {
                 input.click();
             });
         } catch (error) {
-            console.error('创建文件选择器失败:', error);
+            console.error("创建文件选择器失败:", error);
             showMessage(this.plugin.i18n.createFilePickerFailed);
             return false;
         }
@@ -779,9 +779,9 @@ export class FileManager {
     async importTemplate(): Promise<boolean> {
         try {
             // 创建文件选择器
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.html,.htm';
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".html,.htm";
             input.multiple = false;
             
             return new Promise((resolve) => {
@@ -795,7 +795,7 @@ export class FileManager {
                     }
                     
                     // 验证文件类型
-                    if (!file.name.toLowerCase().endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
+                    if (!file.name.toLowerCase().endsWith(".html") && !file.name.toLowerCase().endsWith(".htm")) {
                         showMessage(this.plugin.i18n.invalidFileType);
                         resolve(false);
                         return;
@@ -821,8 +821,8 @@ export class FileManager {
                         
                         // 生成模板文件名
                         let templateName = file.name;
-                        if (!templateName.endsWith('.html')) {
-                            templateName = templateName.replace(/\.(htm)$/i, '.html');
+                        if (!templateName.endsWith(".html")) {
+                            templateName = templateName.replace(/\.(htm)$/i, ".html");
                         }
                         
                         // 检查文件是否已存在
@@ -846,7 +846,7 @@ export class FileManager {
                         resolve(true);
                         
                     } catch (error) {
-                        console.error('导入模板失败:', error);
+                        console.error("导入模板失败:", error);
                         showMessage(this.plugin.i18n.templateImportFailed);
                         resolve(false);
                     }
@@ -860,7 +860,7 @@ export class FileManager {
                 input.click();
             });
         } catch (error) {
-            console.error('创建文件选择器失败:', error);
+            console.error("创建文件选择器失败:", error);
             showMessage(this.plugin.i18n.createFilePickerFailed);
             return false;
         }
@@ -875,18 +875,18 @@ export class FileManager {
             
             reader.onload = (event) => {
                 const result = event.target?.result;
-                if (typeof result === 'string') {
+                if (typeof result === "string") {
                     resolve(result);
                 } else {
-                    reject(new Error('Failed to read file as text'));
+                    reject(new Error("Failed to read file as text"));
                 }
             };
             
             reader.onerror = () => {
-                reject(new Error('Failed to read file'));
+                reject(new Error("Failed to read file"));
             };
             
-            reader.readAsText(file, 'utf-8');
+            reader.readAsText(file, "utf-8");
         });
     }
     
@@ -896,11 +896,11 @@ export class FileManager {
     private validateTiddlyWikiTemplate(content: string): boolean {
         // 基本的TiddlyWiki验证
         const tiddlyWikiMarkers = [
-            'TiddlyWiki',
-            'tiddlywiki',
-            '<!DOCTYPE html',
-            '<html',
-            'application/javascript'
+            "TiddlyWiki",
+            "tiddlywiki",
+            "<!DOCTYPE html",
+            "<html",
+            "application/javascript"
         ];
         
         const contentLower = content.toLowerCase();
@@ -911,9 +911,9 @@ export class FileManager {
         );
         
         // 检查HTML基本结构
-        const hasHtmlStructure = contentLower.includes('<html') && 
-                                contentLower.includes('<head') && 
-                                contentLower.includes('<body');
+        const hasHtmlStructure = contentLower.includes("<html") && 
+                                contentLower.includes("<head") && 
+                                contentLower.includes("<body");
         
         // 检查文件大小合理性（至少1KB，避免空文件）
         const hasReasonableSize = content.length > 1024;
@@ -926,15 +926,15 @@ export class FileManager {
      */
     private async confirmOverwrite(templateName: string): Promise<boolean> {
         return new Promise((resolve) => {
-            const dialog = document.createElement('div');
-            dialog.className = 'b3-dialog';
+            const dialog = document.createElement("div");
+            dialog.className = "b3-dialog";
             dialog.innerHTML = `
                 <div class="b3-dialog__container">
                     <div class="b3-dialog__header">
                         ${this.plugin.i18n.confirmOverwrite}
                     </div>
                     <div class="b3-dialog__content">
-                        <p>${(this.plugin.i18n.templateAlreadyExists || 'Template \'{templateName}\' already exists.').replace('{templateName}', templateName || 'unknown')}</p>
+                        <p>${(this.plugin.i18n.templateAlreadyExists || "Template '{templateName}' already exists.").replace("{templateName}", templateName || "unknown")}</p>
                         <p>${this.plugin.i18n.overwriteConfirmMessage}</p>
                     </div>
                     <div class="b3-dialog__action">
@@ -948,9 +948,9 @@ export class FileManager {
             
             document.body.appendChild(dialog);
             
-            const cancelBtn = dialog.querySelector('#cancelBtn') as HTMLButtonElement;
-            const confirmBtn = dialog.querySelector('#confirmBtn') as HTMLButtonElement;
-            const overlay = dialog.querySelector('.b3-dialog__overlay') as HTMLElement;
+            const cancelBtn = dialog.querySelector("#cancelBtn") as HTMLButtonElement;
+            const confirmBtn = dialog.querySelector("#confirmBtn") as HTMLButtonElement;
+            const overlay = dialog.querySelector(".b3-dialog__overlay") as HTMLElement;
             
             const cleanup = () => {
                 document.body.removeChild(dialog);
@@ -973,14 +973,14 @@ export class FileManager {
             
             // 按ESC键取消
             const handleKeydown = (event: KeyboardEvent) => {
-                if (event.key === 'Escape') {
-                    document.removeEventListener('keydown', handleKeydown);
+                if (event.key === "Escape") {
+                    document.removeEventListener("keydown", handleKeydown);
                     cleanup();
                     resolve(false);
                 }
             };
             
-            document.addEventListener('keydown', handleKeydown);
+            document.addEventListener("keydown", handleKeydown);
         });
     }
 
@@ -996,7 +996,7 @@ export class FileManager {
             const originalName = await this.backupManager.restoreFromBackup(backupName);
             return !!originalName;
         } catch (error) {
-            console.error('Manual restore failed:', error);
+            console.error("Manual restore failed:", error);
             return false;
         }
     }
@@ -1011,10 +1011,10 @@ export class FileManager {
 
         for (const backup of backups) {
             try {
-                const backupPath = `${this.backupManager['backupDir']}/${backup}`;
+                const backupPath = `${this.backupManager["backupDir"]}/${backup}`;
                 const content = await this.plugin.loadData(backupPath);
                 if (content) {
-                    const timestamp = this.backupManager['extractTimestampFromBackupName'](backup);
+                    const timestamp = this.backupManager["extractTimestampFromBackupName"](backup);
                     result.push({
                         backupName: backup,
                         date: timestamp ? new Date(timestamp) : new Date(),
