@@ -1,5 +1,6 @@
 import { Plugin, showMessage, Dialog } from "siyuan";
 import { ExtendedPlugin } from "./types";
+import { BackupManager } from "./backup-manager";
 
 /**
  * TiddlyWiki 文件管理器
@@ -11,9 +12,11 @@ export class FileManager {
     private tiddlyWikiDir: string;
     private templateDir: string;
     private isMobile: boolean;
+    private backupManager: BackupManager;
 
     constructor(plugin: Plugin, isMobile: boolean = false) {
         this.plugin = plugin as ExtendedPlugin;
+        this.backupManager = new BackupManager(plugin);
         // 插件数据存储的根路径，不需要包含插件名称
         this.dataDir = "";
         this.tiddlyWikiDir = "tiddlywiki";
@@ -27,6 +30,7 @@ export class FileManager {
     async initialize() {
         await this.ensureDirectoriesExist();
         await this.ensureTemplateExists();
+        await this.backupManager.initialize();
     }
 
     /**
@@ -490,18 +494,107 @@ export class FileManager {
     }
 
     /**
-     * 保存TiddlyWiki文件内容
+     * 保存TiddlyWiki文件内容（带备份和原子性保证）
      */
     async saveTiddlyWiki(name: string, content: string): Promise<boolean> {
+        const filePath = `${this.tiddlyWikiDir}/${name}`;
+        const tempPath = `${this.tiddlyWikiDir}/${name}.temp`;
+
         try {
-            const filePath = `${this.tiddlyWikiDir}/${name}`;
-            await this.plugin.saveData(filePath, content);
+            if (!this.validateHtmlContent(content)) {
+                throw new Error('Invalid HTML content');
+            }
+
+            const backupFileName = await this.backupManager.createBackup(name);
+            if (!backupFileName) {
+                console.warn('Backup creation failed, continuing with save...');
+            }
+
+            await this.plugin.saveData(tempPath, content);
+
+            const savedContent = await this.plugin.loadData(tempPath);
+            if (savedContent !== content) {
+                throw new Error('Temporary file verification failed');
+            }
+
+            try {
+                await this.plugin.removeData(filePath);
+            } catch (removeError) {
+                console.log('Original file does not exist, creating new file');
+            }
+
+            await this.plugin.saveData(filePath, savedContent);
+
+            const finalContent = await this.plugin.loadData(filePath);
+            if (finalContent !== savedContent) {
+                throw new Error('Final file verification failed');
+            }
+
+            await this.plugin.removeData(tempPath);
             console.log(`${this.plugin.i18n.tiddlyWikiFileSaved}: ${filePath}`);
             return true;
         } catch (error) {
             console.error(this.plugin.i18n.saveTiddlyWikiError + ":", error);
+            try {
+                await this.attemptRecovery(name, filePath, tempPath);
+            } catch (recoveryError) {
+                console.error('Recovery also failed:', recoveryError);
+            }
             return false;
         }
+    }
+
+    private validateHtmlContent(content: string): boolean {
+        if (typeof content !== 'string' || content.length < 100) {
+            return false;
+        }
+
+        const lowerContent = content.toLowerCase();
+        const requiredTags = ['<html', '<head', '<body', '</html>', '</body>'];
+        for (const tag of requiredTags) {
+            if (!lowerContent.includes(tag)) {
+                console.warn(`Missing required tag: ${tag}`);
+                return false;
+            }
+        }
+
+        if (content.length > 50 * 1024 * 1024) {
+            console.error('File too large (>50MB)');
+            return false;
+        }
+
+        return true;
+    }
+
+    private async attemptRecovery(name: string, filePath: string, tempPath: string): Promise<void> {
+        console.log('Attempting recovery...');
+
+        try {
+            const tempContent = await this.plugin.loadData(tempPath);
+            if (tempContent) {
+                await this.plugin.saveData(filePath, tempContent);
+                console.log('Recovered from temp file');
+                return;
+            }
+        } catch (e) {
+            console.warn('Temp file recovery failed:', e);
+        }
+
+        try {
+            const backups = await this.backupManager.getBackupList(name);
+            if (backups.length > 0) {
+                const latestBackup = backups[0];
+                const originalName = await this.backupManager.restoreFromBackup(latestBackup);
+                if (originalName) {
+                    console.log('Recovered from backup');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Backup recovery failed:', e);
+        }
+
+        throw new Error('All recovery methods failed');
     }
 
     /**
@@ -896,5 +989,43 @@ export class FileManager {
      */
     destroy() {
         console.log(this.plugin.i18n.fileManagerDestroyed);
+    }
+
+    async manualRestore(backupName: string): Promise<boolean> {
+        try {
+            const originalName = await this.backupManager.restoreFromBackup(backupName);
+            return !!originalName;
+        } catch (error) {
+            console.error('Manual restore failed:', error);
+            return false;
+        }
+    }
+
+    async getRestorableBackups(originalName: string): Promise<Array<{
+        backupName: string;
+        date: Date;
+        size: number;
+    }>> {
+        const backups = await this.backupManager.getBackupList(originalName);
+        const result: Array<{ backupName: string; date: Date; size: number }> = [];
+
+        for (const backup of backups) {
+            try {
+                const backupPath = `${this.backupManager['backupDir']}/${backup}`;
+                const content = await this.plugin.loadData(backupPath);
+                if (content) {
+                    const timestamp = this.backupManager['extractTimestampFromBackupName'](backup);
+                    result.push({
+                        backupName: backup,
+                        date: timestamp ? new Date(timestamp) : new Date(),
+                        size: content.length
+                    });
+                }
+            } catch (e) {
+                console.warn(`Failed to read backup ${backup}:`, e);
+            }
+        }
+
+        return result.sort((a, b) => b.date.getTime() - a.date.getTime());
     }
 }
