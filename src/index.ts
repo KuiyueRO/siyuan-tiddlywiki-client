@@ -1,7 +1,6 @@
 import {
     Plugin,
     Custom,
-    showMessage,
     getFrontend
 } from "siyuan";
 import "./index.scss";
