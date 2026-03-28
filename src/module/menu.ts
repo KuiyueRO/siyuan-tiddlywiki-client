@@ -17,13 +17,10 @@ export class menu {
     private isMobile: boolean;
     private fileManager: FileManager;
     
-    constructor(plugin: Plugin, isMobile: boolean) {
+    constructor(plugin: Plugin, isMobile: boolean, fileManager: FileManager) {
         this.plugin = plugin as ExtendedPlugin;
         this.isMobile = isMobile;
-        this.fileManager = new FileManager(plugin, isMobile);
-        
-        // 初始化文件管理器
-        this.fileManager.initialize().catch(console.error);
+        this.fileManager = fileManager;
     }
     
     /**

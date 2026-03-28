@@ -13,9 +13,9 @@ export class SaveInterceptor {
     private currentIframe: HTMLIFrameElement | null = null;
     private interceptors: Array<() => void> = [];
 
-    constructor(plugin: Plugin) {
+    constructor(plugin: Plugin, fileManager: FileManager) {
         this.plugin = plugin as ExtendedPlugin;
-        this.fileManager = new FileManager(plugin);
+        this.fileManager = fileManager;
     }
 
     /**

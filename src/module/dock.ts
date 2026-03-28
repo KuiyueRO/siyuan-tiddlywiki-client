@@ -19,14 +19,11 @@ export class dock {
     private fileManager: FileManager;
     private dockElement: HTMLElement | null = null;
 
-    constructor(plugin: Plugin, isMobile: boolean, dockType: string) {
+    constructor(plugin: Plugin, isMobile: boolean, dockType: string, fileManager: FileManager) {
         this.plugin = plugin as ExtendedPlugin;
         this.isMobile = isMobile;
         this.dockType = dockType;
-        this.fileManager = new FileManager(plugin, isMobile);
-        
-        // 初始化文件管理器
-        this.fileManager.initialize().catch(console.error);
+        this.fileManager = fileManager;
     }
 
     /**
@@ -701,26 +698,6 @@ export class dock {
             dock.hide();
         }
     }
-
-    /**
-     * 获取dock状态信息
-     */
-    getDockInfo() {
-        return {
-            type: this.dockType,
-            isMobile: this.isMobile,
-            title: "TiddlyWiki"
-        };
-    }
-
-    /**
-     * 更新dock数据
-     */
-    updateDockData(newData: any) {
-        // TODO: 实现dock数据更新逻辑
-        console.log("Updating dock data:", newData);
-    }
-
 
     /**
      * 销毁dock相关资源

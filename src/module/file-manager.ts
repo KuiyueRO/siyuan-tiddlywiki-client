@@ -312,13 +312,6 @@ export class FileManager {
             const filePath = `${this.tiddlyWikiDir}/${name}`;
             await this.plugin.saveData(filePath, templateContent);
 
-            // 更新文件列表
-            const currentList = await this.getTiddlyWikiList();
-            if (!currentList.includes(name)) {
-                currentList.push(name);
-                await this.updateFileList(currentList);
-            }
-
             showMessage(`${this.plugin.i18n.dockTitle} "${name}" ${this.plugin.i18n.tiddlyWikiCreated}`);
             return true;
         } catch (error) {
@@ -356,57 +349,34 @@ export class FileManager {
     }
 
     /**
-     * 获取所有TiddlyWiki文件列表
+     * 获取所有TiddlyWiki文件列表（动态扫描目录）
      */
     async getTiddlyWikiList(): Promise<string[]> {
         try {
-            const listData = await this.plugin.loadData(`${this.tiddlyWikiDir}/.file-list`);
-            if (!listData) return [];
-            
-            let fileList: string[];
-            if (Array.isArray(listData)) {
-                fileList = listData;
-            } else if (typeof listData === "string") {
-                if (!listData.trim()) return [];
-                const jsonString = listData.includes("'") ? listData.replace(/'/g, '"') : listData;
-                fileList = JSON.parse(jsonString);
-            } else {
-                fileList = JSON.parse(String(listData).replace(/'/g, '"'));
-            }
-            
-            if (!Array.isArray(fileList)) {
-                await this.updateFileList([]);
-                return [];
-            }
-            
-            const validFiles = [];
-            for (const fileName of fileList) {
-                if (typeof fileName === "string" && fileName.trim() && await this.tiddlyWikiExists(fileName)) {
-                    validFiles.push(fileName);
+            const response = await fetch("/api/file/readDir", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    path: `/data/storage/petal/${this.plugin.name}/${this.tiddlyWikiDir}`
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.code === 0 && data.data) {
+                    return data.data
+                        .filter((item: any) => !item.isDir && item.name.endsWith(".html"))
+                        .map((item: any) => item.name)
+                        .sort();
                 }
             }
-            
-            if (validFiles.length !== fileList.length) {
-                await this.updateFileList(validFiles);
-            }
-            
-            return validFiles;
         } catch (error) {
             console.error(this.plugin.i18n.getTiddlyWikiListError + ":", error);
-            return [];
         }
+        return [];
     }
 
-    /**
-     * 更新文件列表
-     */
-    private async updateFileList(fileList: string[]) {
-        try {
-            await this.plugin.saveData(`${this.tiddlyWikiDir}/.file-list`, fileList);
-        } catch (error) {
-            console.error(this.plugin.i18n.updateFileListError + ":", error);
-        }
-    }
+
 
     /**
      * 重命名TiddlyWiki文件
@@ -440,14 +410,6 @@ export class FileManager {
             const oldFilePath = `${this.tiddlyWikiDir}/${oldName}`;
             await this.plugin.removeData(oldFilePath);
 
-            // 更新文件列表
-            const currentList = await this.getTiddlyWikiList();
-            const updatedList = currentList.filter(name => name !== oldName);
-            if (!updatedList.includes(newName)) {
-                updatedList.push(newName);
-            }
-            await this.updateFileList(updatedList);
-
             showMessage(`${this.plugin.i18n.fileRenamedTo} "${newName}"`);
             return true;
         } catch (error) {
@@ -464,11 +426,6 @@ export class FileManager {
         try {
             const filePath = `${this.tiddlyWikiDir}/${name}`;
             await this.plugin.removeData(filePath);
-
-            // 更新文件列表
-            const currentList = await this.getTiddlyWikiList();
-            const updatedList = currentList.filter(fileName => fileName !== name);
-            await this.updateFileList(updatedList);
 
             showMessage(`${this.plugin.i18n.dockTitle} "${name}" ${this.plugin.i18n.tiddlyWikiDeleted}`);
             return true;
@@ -740,13 +697,6 @@ export class FileManager {
                         // 保存到TiddlyWiki目录
                         const filePath = `${this.tiddlyWikiDir}/${fileName}`;
                         await this.plugin.saveData(filePath, fileContent);
-                        
-                        // 更新文件列表
-                        const currentList = await this.getTiddlyWikiList();
-                        if (!currentList.includes(fileName)) {
-                            currentList.push(fileName);
-                            await this.updateFileList(currentList);
-                        }
                         
                         showMessage(`${this.plugin.i18n.tiddlyWikiImportSuccess}: ${fileName}`);
                         console.log(`TiddlyWiki文件导入成功: ${fileName}`);
