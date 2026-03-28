@@ -172,6 +172,20 @@ export class BackupManager {
     }
 
     /**
+     * 获取备份文件的完整路径（公开方法）
+     */
+    getBackupPath(backupName: string): string {
+        return `${this.backupDir}/${backupName}`;
+    }
+
+    /**
+     * 从备份文件名中提取时间戳（公开方法）
+     */
+    extractTimestamp(backupName: string): number | null {
+        return this.extractTimestampFromBackupName(backupName);
+    }
+
+    /**
      * 获取指定文件的所有备份
      */
     async getBackupList(originalName: string): Promise<string[]> {

@@ -225,63 +225,30 @@ export class FileManager {
                     path: `/data/storage/petal/${this.plugin.name}/${this.templateDir}`
                 })
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 if (data.code === 0 && data.data) {
-                    // 过滤出 .html 文件
                     const htmlFiles = data.data
                         .filter((item: any) => !item.isDir && item.name.endsWith(".html"))
                         .map((item: any) => item.name)
                         .sort();
                     
                     if (htmlFiles.length > 0) {
-                        console.log("动态获取到模板文件:", htmlFiles);
                         return htmlFiles;
                     }
                 }
             }
         } catch (error) {
-            console.warn("使用 kernel API 获取模板文件失败，回退到固定列表模式:", error);
+            console.warn("使用 kernel API 获取模板文件失败:", error);
         }
         
-        // 回退到原来的固定列表检查方式
-        const knownTemplates = [
-            "empty.html", 
-            "tiddlywiki.html", 
-            "basic.html",
-            "tiddlyroam.html",  // 添加已知存在的文件
-            "stroll.html",
-            "drift.html",
-            "notebook.html",
-            "wiki.html",
-            "journal.html",
-            "template.html",
-            "default.html",
-            "blank.html",
-            "custom.html"
-        ];
-        
-        const templates: string[] = [];
-        
-        for (const templateName of knownTemplates) {
-            try {
-                const data = await this.plugin.loadData(`${this.templateDir}/${templateName}`);
-                if (data) {
-                    templates.push(templateName);
-                    console.log(`发现模板文件: ${templateName}`);
-                }
-            } catch {
-                continue;
-            }
-        }
-        
-        if (templates.length === 0) {
+        // API 失败时确保至少有 empty.html
+        const emptyExists = await this.plugin.loadData(`${this.templateDir}/empty.html`);
+        if (!emptyExists) {
             await this.copyEmptyHtmlTemplate();
-            templates.push("empty.html");
         }
-        
-        return templates.sort();
+        return ["empty.html"];
     }
 
     /**
@@ -502,22 +469,39 @@ export class FileManager {
     }
 
     private validateHtmlContent(content: string): boolean {
-        if (typeof content !== "string" || content.length < 100) {
+        return this.validateContent(content, false);
+    }
+
+    /**
+     * 统一的 HTML 内容验证
+     * @param content 要验证的内容
+     * @param strict 严格模式（导入时），要求至少 1KB 且包含 TiddlyWiki 标识
+     */
+    private validateContent(content: string, strict: boolean): boolean {
+        if (typeof content !== "string") return false;
+
+        const minLength = strict ? 1024 : 100;
+        if (content.length < minLength) return false;
+
+        if (content.length > 50 * 1024 * 1024) {
+            console.error("File too large (>50MB)");
             return false;
         }
 
-        const lowerContent = content.toLowerCase();
-        const requiredTags = ["<html", "<head", "<body", "</html>", "</body>"];
+        const lower = content.toLowerCase();
+        const requiredTags = ["<html", "<head", "<body", "</html>"];
         for (const tag of requiredTags) {
-            if (!lowerContent.includes(tag)) {
+            if (!lower.includes(tag)) {
                 console.warn(`Missing required tag: ${tag}`);
                 return false;
             }
         }
 
-        if (content.length > 50 * 1024 * 1024) {
-            console.error("File too large (>50MB)");
-            return false;
+        if (strict) {
+            // 严格模式：检查 TiddlyWiki 特征标识
+            const tiddlyWikiMarkers = ["tiddlywiki", "<!doctype html", "application/javascript"];
+            const hasMarker = tiddlyWikiMarkers.some(m => lower.includes(m));
+            if (!hasMarker) return false;
         }
 
         return true;
@@ -844,31 +828,7 @@ export class FileManager {
      * 验证是否为有效的TiddlyWiki模板
      */
     private validateTiddlyWikiTemplate(content: string): boolean {
-        // 基本的TiddlyWiki验证
-        const tiddlyWikiMarkers = [
-            "TiddlyWiki",
-            "tiddlywiki",
-            "<!DOCTYPE html",
-            "<html",
-            "application/javascript"
-        ];
-        
-        const contentLower = content.toLowerCase();
-        
-        // 检查是否包含TiddlyWiki的特征标识
-        const hasBasicStructure = tiddlyWikiMarkers.some(marker => 
-            contentLower.includes(marker.toLowerCase())
-        );
-        
-        // 检查HTML基本结构
-        const hasHtmlStructure = contentLower.includes("<html") && 
-                                contentLower.includes("<head") && 
-                                contentLower.includes("<body");
-        
-        // 检查文件大小合理性（至少1KB，避免空文件）
-        const hasReasonableSize = content.length > 1024;
-        
-        return hasBasicStructure && hasHtmlStructure && hasReasonableSize;
+        return this.validateContent(content, true);
     }
     
     /**
@@ -903,8 +863,19 @@ export class FileManager {
             const overlay = dialog.querySelector(".b3-dialog__overlay") as HTMLElement;
             
             const cleanup = () => {
+                document.removeEventListener("keydown", handleKeydown);
                 document.body.removeChild(dialog);
             };
+            
+            // 按ESC键取消
+            const handleKeydown = (event: KeyboardEvent) => {
+                if (event.key === "Escape") {
+                    cleanup();
+                    resolve(false);
+                }
+            };
+            
+            document.addEventListener("keydown", handleKeydown);
             
             cancelBtn.onclick = () => {
                 cleanup();
@@ -920,17 +891,6 @@ export class FileManager {
                 cleanup();
                 resolve(false);
             };
-            
-            // 按ESC键取消
-            const handleKeydown = (event: KeyboardEvent) => {
-                if (event.key === "Escape") {
-                    document.removeEventListener("keydown", handleKeydown);
-                    cleanup();
-                    resolve(false);
-                }
-            };
-            
-            document.addEventListener("keydown", handleKeydown);
         });
     }
 
@@ -961,10 +921,10 @@ export class FileManager {
 
         for (const backup of backups) {
             try {
-                const backupPath = `${this.backupManager["backupDir"]}/${backup}`;
+                const backupPath = this.backupManager.getBackupPath(backup);
                 const content = await this.plugin.loadData(backupPath);
                 if (content) {
-                    const timestamp = this.backupManager["extractTimestampFromBackupName"](backup);
+                    const timestamp = this.backupManager.extractTimestamp(backup);
                     result.push({
                         backupName: backup,
                         date: timestamp ? new Date(timestamp) : new Date(),

@@ -17,6 +17,7 @@ export class tab {
     private customTab: () => Custom;
     private fileManager: FileManager;
     private saveInterceptors: Map<string, SaveInterceptor> = new Map();
+    private static tabIdCounter = 0;
     
     constructor(plugin: Plugin, tabType: string, fileManager: FileManager) {
         this.plugin = plugin as ExtendedPlugin;
@@ -105,7 +106,7 @@ export class tab {
             console.log("TiddlyWiki内容已读取，长度:", content.length);
 
             // 为这个特定的TiddlyWiki文件创建唯一的tab类型
-            const tabId = Math.random().toString(36).substring(7);
+            const tabId = `tw-${++tab.tabIdCounter}`;
             const tabType = `tiddlywiki-${tabId}`;
             
             console.log("创建的标签页类型:", tabType);
@@ -155,6 +156,7 @@ export class tab {
         // 保存当前实例引用，用于访问saveInterceptors
         const saveInterceptors = this.saveInterceptors;
         const plugin = this.plugin;
+        const fileManager = this.fileManager;
         
         return function(this: Custom) {
             console.log("=== TiddlyWiki 标签页 init() 开始执行 ===");
@@ -211,24 +213,24 @@ export class tab {
                     
                     console.log("iframe已创建，准备设置内容");
                     
+                    // 安全设置
+                    iframe.setAttribute("sandbox", "allow-scripts allow-forms allow-downloads allow-modals");
+                    iframe.setAttribute("referrerpolicy", "no-referrer");
+                    
                     // 清空并添加iframe
                     customTabElement.element.innerHTML = "";
                     customTabElement.element.appendChild(iframe);
-                    
-                    // 设置iframe内容
-                    const blob = new Blob([content], { type: "text/html" });
-                    const url = URL.createObjectURL(blob);
                     
                     iframe.onload = () => {
                         console.log("TiddlyWiki iframe 加载完成");
                         
                         // 设置保存拦截器
                         try {
-                            const interceptor = new SaveInterceptor(plugin);
+                            const interceptor = new SaveInterceptor(plugin, fileManager);
                             interceptor.setupSaveInterception(iframe, fileName);
                             
                             // 存储拦截器以便后续清理
-                            const interceptorId = Math.random().toString(36).substring(7);
+                            const interceptorId = `si-${++tab.tabIdCounter}`;
                             saveInterceptors.set(interceptorId, interceptor);
                             
                             // 在iframe上存储interceptorId以便销毁时清理
@@ -238,9 +240,6 @@ export class tab {
                         } catch (interceptorError) {
                             console.error("设置保存拦截器失败:", interceptorError);
                         }
-                        
-                        // 清理blob URL
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
                     };
                     
                     iframe.onerror = (error) => {
@@ -262,8 +261,9 @@ export class tab {
                         `;
                     };
                     
-                    iframe.src = url;
-                    console.log("iframe src 已设置为 blob URL");
+                    // 使用 srcdoc 加载内容（统一安全方式）
+                    iframe.srcdoc = content;
+                    console.log("iframe srcdoc 已设置");
                     
                 } catch (error) {
                     console.error("渲染TiddlyWiki失败:", error);

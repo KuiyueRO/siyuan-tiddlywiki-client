@@ -7,6 +7,7 @@ import {
 } from "siyuan";
 import { ExtendedPlugin } from "./types";
 import { FileManager } from "./file-manager";
+import { SaveInterceptor } from "./save-interceptor";
 
 /**
  * TiddlyWiki Dock模块
@@ -443,6 +444,15 @@ export class dock {
 
             // 定义关闭函数
             const closePopup = () => {
+                // 清理保存拦截器
+                try {
+                    const iframeEl = contentArea.querySelector("iframe") as HTMLIFrameElement;
+                    if (iframeEl && (iframeEl as any).__saveInterceptor) {
+                        (iframeEl as any).__saveInterceptor.destroy();
+                    }
+                } catch (e) {
+                    console.warn("清理保存拦截器失败:", e);
+                }
                 // 移除弹出窗口
                 if (popup.parentNode) {
                     popup.parentNode.removeChild(popup);
@@ -545,6 +555,17 @@ export class dock {
                     const loadingDiv = contentArea.querySelector("div");
                     if (loadingDiv && loadingDiv.textContent.includes(this.plugin.i18n.loadingInProgress)) {
                         loadingDiv.remove();
+                    }
+                    
+                    // 设置保存拦截器（移动端也需要保存功能）
+                    try {
+                        const interceptor = new SaveInterceptor(this.plugin, this.fileManager);
+                        interceptor.setupSaveInterception(iframe, fileName);
+                        // 存储拦截器引用，关闭弹出时清理
+                        (iframe as any).__saveInterceptor = interceptor;
+                        console.log("移动端保存拦截器已设置");
+                    } catch (interceptorError) {
+                        console.error("设置移动端保存拦截器失败:", interceptorError);
                     }
                     
                     console.log("TiddlyWiki iframe已加载，沙盒限制生效");
