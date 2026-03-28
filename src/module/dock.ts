@@ -8,6 +8,7 @@ import {
 import { ExtendedPlugin } from "./types";
 import { FileManager } from "./file-manager";
 import { SaveInterceptor } from "./save-interceptor";
+import { UIActions } from "./ui-actions";
 
 /**
  * TiddlyWiki Dock模块
@@ -109,7 +110,7 @@ export class dock {
         const importButton = dock.element.querySelector("[data-type=\"import\"]");
         if (importButton) {
             importButton.addEventListener("click", () => {
-                this.handleImport();
+                this.handleImportUI();
             });
         }
 
@@ -133,75 +134,15 @@ export class dock {
     /**
      * 处理导入
      */
-    private async handleImport() {
-        try {
-            const success = await this.fileManager.showImportDialog();
-            if (success) {
-                // 导入成功后，刷新文件列表
-                this.refreshTiddlyWikiList();
-            }
-        } catch (error) {
-            console.error("导入失败:", error);
-            showMessage(this.plugin.i18n.importFailed || "Import failed");
-        }
+    private async handleImportUI() {
+        UIActions.handleImport(this.plugin, this.fileManager, () => this.refreshTiddlyWikiList());
     }
 
     /**
      * 处理添加TiddlyWiki项目
      */
     private async handleAddTiddlyWikiItem() {
-        const templates = await this.fileManager.getTemplates();
-        const templateOptions = templates.map(t => `<option value="${t}">${t}</option>`).join("");
-
-        const dialog = new Dialog({
-            title: this.plugin.i18n.createNew,
-            content: `<div class="b3-dialog__content">
-    <div class="b3-form__row">
-        <label class="b3-form__label">${this.plugin.i18n.name}</label>
-        <input class="b3-text-field fn__block" placeholder="${this.plugin.i18n.enterTiddlyWikiName}" id="tiddlyWikiItemName">
-    </div>
-    <div class="b3-form__row">
-        <label class="b3-form__label">${this.plugin.i18n.template}</label>
-        <select class="b3-select fn__block" id="tiddlyWikiTemplate">${templateOptions}</select>
-    </div>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${this.plugin.i18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${this.plugin.i18n.create}</button>
-</div>`,
-            width: this.isMobile ? "92vw" : "480px",
-        });
-        
-        const nameInput = dialog.element.querySelector("#tiddlyWikiItemName") as HTMLInputElement;
-        const templateSelect = dialog.element.querySelector("#tiddlyWikiTemplate") as HTMLSelectElement;
-        const buttons = dialog.element.querySelectorAll(".b3-button");
-        
-        setTimeout(() => nameInput.focus(), 100);
-        
-        templateSelect.addEventListener("mousedown", e => e.stopPropagation());
-        templateSelect.addEventListener("click", e => e.stopPropagation());
-        
-        buttons[0].addEventListener("click", () => dialog.destroy());
-        
-        const createHandler = async () => {
-            const name = nameInput.value.trim();
-            if (!name) {
-                showMessage(this.plugin.i18n.enterTiddlyWikiName);
-                nameInput.focus();
-                return;
-            }
-            
-            const success = await this.fileManager.createTiddlyWiki(name, templateSelect.value);
-            if (success) {
-                this.refreshTiddlyWikiList();
-                dialog.destroy();
-            }
-        };
-        
-        buttons[1].addEventListener("click", createHandler);
-        nameInput.addEventListener("keydown", e => {
-            if (e.key === "Enter") createHandler();
-        });
+        UIActions.showCreateDialog(this.plugin, this.fileManager, this.isMobile, () => this.refreshTiddlyWikiList());
     }
 
 
@@ -332,17 +273,7 @@ export class dock {
      * 打开TiddlyWiki文件
      */
     private async openTiddlyWiki(fileName: string) {
-        if (this.isMobile) {
-            // 移动端使用弹出窗口方式
-            await this.openTiddlyWikiInPopup(fileName);
-        } else {
-            // 桌面端使用tab方式
-            if (this.plugin.tabModule) {
-                this.plugin.tabModule.openTiddlyWikiInTab(fileName);
-            } else {
-                showMessage(this.plugin.i18n.cannotOpenTiddlyWiki);
-            }
-        }
+        UIActions.openTiddlyWiki(this.plugin, this.isMobile, fileName, this.plugin.tabModule, (f) => this.openTiddlyWikiInPopup(f));
     }
 
     /**
@@ -637,74 +568,14 @@ export class dock {
      * 重命名TiddlyWiki文件
      */
     private renameTiddlyWiki(fileName: string) {
-        const currentName = fileName.replace(".html", "");
-        
-        const dialog = new Dialog({
-            title: this.plugin.i18n.rename + " TiddlyWiki",
-            content: `<div class="b3-dialog__content">
-    <div class="b3-form__row">
-        <label class="b3-form__label">${this.plugin.i18n.newName}</label>
-        <input class="b3-text-field fn__block" placeholder="${this.plugin.i18n.enterNewName}" id="newTiddlyWikiName" value="${currentName}">
-    </div>
-</div>
-<div class="b3-dialog__action">
-    <button class="b3-button b3-button--cancel">${this.plugin.i18n.cancel}</button><div class="fn__space"></div>
-    <button class="b3-button b3-button--text">${this.plugin.i18n.rename}</button>
-</div>`,
-            width: this.isMobile ? "92vw" : "420px",
-        });
-        
-        const nameInput = dialog.element.querySelector("#newTiddlyWikiName") as HTMLInputElement;
-        const btnsElement = dialog.element.querySelectorAll(".b3-button");
-        
-        nameInput.focus();
-        nameInput.select();
-        
-        // 取消按钮
-        btnsElement[0].addEventListener("click", () => {
-            dialog.destroy();
-        });
-        
-        // 重命名按钮
-        btnsElement[1].addEventListener("click", async () => {
-            const newName = nameInput.value.trim();
-            
-            if (newName && newName !== currentName) {
-                const success = await this.fileManager.renameTiddlyWiki(fileName, newName);
-                if (success) {
-                    this.refreshTiddlyWikiList();
-                    dialog.destroy();
-                }
-            } else if (!newName) {
-                showMessage(this.plugin.i18n.enterNewName);
-                nameInput.focus();
-            } else {
-                dialog.destroy();
-            }
-        });
-
-        // 回车键确认
-        nameInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-                (btnsElement[1] as HTMLButtonElement).click();
-            }
-        });
+        UIActions.showRenameDialog(this.plugin, this.fileManager, this.isMobile, fileName, () => this.refreshTiddlyWikiList());
     }
 
     /**
      * 删除TiddlyWiki文件
      */
     private deleteTiddlyWiki(fileName: string) {
-        confirm(
-            this.plugin.i18n.delete,
-            this.plugin.i18n.deleteConfirm.replace("{fileName}", fileName),
-            async () => {
-                const success = await this.fileManager.deleteTiddlyWiki(fileName);
-                if (success) {
-                    this.refreshTiddlyWikiList();
-                }
-            }
-        );
+        UIActions.confirmDelete(this.plugin, this.fileManager, fileName, () => this.refreshTiddlyWikiList());
     }
 
     /**

@@ -244,12 +244,12 @@ export class BackupManager {
             await this.plugin.saveData(originalPath, backupContent);
 
             console.log(`Restored from backup: ${backupName} -> ${originalName}`);
-            showMessage(`已从备份恢复: ${originalName}`);
+            showMessage(this.plugin.i18n.backupRecovered + ": " + originalName);
 
             return originalName;
         } catch (error) {
             console.error(`Failed to restore from backup ${backupName}:`, error);
-            showMessage(`恢复失败: ${error.message}`, 5000);
+            showMessage(this.plugin.i18n.backupRestoreFailed + ": " + error.message, 5000);
             return null;
         }
     }
